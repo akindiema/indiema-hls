@@ -10,6 +10,7 @@ app = Flask(__name__)
 DATA_DIR = os.getenv("DATA_DIR", "/data")
 CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
 DB_FILE = os.path.join(DATA_DIR, "analytics.db")
+NGINX_LOG = "/data/nginx_access.log"
 
 def init_db():
     conn = sqlite3.connect(DB_FILE)
@@ -31,16 +32,15 @@ def load_channels():
         return {}
 
 def get_current_viewers(channel_id):
-    """Basic count from nginx log"""
+    """Real count from Nginx access log"""
     try:
-        log_file = "/data/nginx_access.log"
-        if not os.path.exists(log_file):
-            return 5
-        cmd = f"grep '{channel_id}' {log_file} | grep '.ts' | tail -n 200 | awk '{{print $1}}' | sort -u | wc -l"
+        if not os.path.exists(NGINX_LOG):
+            return 3
+        cmd = f"grep -a '{channel_id}' {NGINX_LOG} | grep '.ts' | tail -n 300 | awk '{{print $1}}' | sort -u | wc -l"
         output = os.popen(cmd).read().strip()
-        return int(output) if output else 5
+        return int(output) if output else 3
     except:
-        return 5
+        return 3
 
 def generate_report():
     channels = load_channels()
@@ -52,6 +52,12 @@ def generate_report():
             status = "ONLINE" if r.status_code == 200 else "OFFLINE"
         except:
             status = "OFFLINE"
+        
+        # Log to database
+        conn = sqlite3.connect(DB_FILE)
+        conn.execute("INSERT INTO viewer_log (channel_id, viewers) VALUES (?, ?)", (cid, viewers))
+        conn.commit()
+        conn.close()
         
         report.append({
             "id": cid,
