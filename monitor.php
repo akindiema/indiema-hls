@@ -1,14 +1,13 @@
 <?php
-// Configuration - Call the correct API from monitor route
-$api_url = "http://127.0.0.1:5001/api/stats";   // This calls the monitor API
+// Configuration
+$api_url = "http://127.0.0.1:5001/api/stats";
 
 $page_title = "IndieMa | Real-Time Health";
 
-// Fetch data
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $api_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+curl_setopt($ch, CURLOPT_TIMEOUT, 8);
 $json_data = curl_exec($ch);
 curl_close($ch);
 
@@ -25,7 +24,7 @@ $stats = json_decode($json_data, true) ?: [];
     <style>
         body { background: #0f172a; color: #f8fafc; font-family: 'Inter', sans-serif; }
         .card-stream { background: #1e293b; border: 1px solid #334155; border-radius: 12px; }
-        .status-badge { font-size: 0.8rem; padding: 5px 12px; border-radius: 20px; }
+        .status-badge { font-size: 0.9rem; padding: 6px 14px; border-radius: 20px; }
         .online { background: #059669; color: #ecfdf5; }
         .offline { background: #dc2626; color: #fef2f2; }
     </style>
@@ -38,39 +37,39 @@ $stats = json_decode($json_data, true) ?: [];
         </div>
 
         <div class="row">
-            <?php foreach ($stats as $stream): ?>
-            <div class="col-md-6 mb-4">
-                <div class="card-stream p-4 shadow-sm">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h4 class="mb-1"><?php echo htmlspecialchars($stream['name'] ?? 'Unknown'); ?></h4>
-                            <p class="text-muted small mb-0">ID: <?php echo htmlspecialchars($stream['id'] ?? ''); ?></p>
+            <?php if (empty($stats)): ?>
+                <div class="col-12">
+                    <div class="alert alert-warning text-center">No channel data available yet. Please add channels first.</div>
+                </div>
+            <?php else: ?>
+                <?php foreach ($stats as $stream): ?>
+                <div class="col-md-6 mb-4">
+                    <div class="card-stream p-4 shadow-sm">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h4 class="mb-1"><?php echo htmlspecialchars($stream['name'] ?? 'Unknown'); ?></h4>
+                                <p class="text-muted small mb-0">ID: <?php echo htmlspecialchars($stream['id'] ?? ''); ?></p>
+                            </div>
+                            <div>
+                                <span class="status-badge <?php echo strtolower($stream['status'] ?? 'OFFLINE'); ?>">
+                                    ● <?php echo strtoupper($stream['status'] ?? 'OFFLINE'); ?>
+                                </span>
+                            </div>
                         </div>
-                        <div>
-                            <span class="status-badge <?php echo strtolower($stream['status'] ?? 'OFFLINE'); ?>">
-                                ● <?php echo strtoupper($stream['status'] ?? 'OFFLINE'); ?>
-                            </span>
-                        </div>
-                    </div>
-                    <hr class="border-secondary">
-                    <div class="row text-center">
-                        <div class="col-6">
-                            <div class="text-muted small">Active Clips</div>
-                            <div class="h5 mb-0"><?php echo $stream['clip_count'] ?? 0; ?></div>
-                        </div>
-                        <div class="col-6 border-start border-secondary">
-                            <div class="text-muted small">Live Viewers</div>
-                            <div class="h5 mb-0 text-info"><?php echo $stream['viewers'] ?? 0; ?></div>
+                        <hr class="border-secondary">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <div class="text-muted small">Active Clips</div>
+                                <div class="h5 mb-0"><?php echo $stream['clip_count'] ?? 0; ?></div>
+                            </div>
+                            <div class="col-6 border-start border-secondary">
+                                <div class="text-muted small">Live Viewers</div>
+                                <div class="h5 mb-0 text-info"><?php echo $stream['viewers'] ?? 0; ?></div>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <?php endforeach; ?>
-            
-            <?php if (empty($stats)): ?>
-            <div class="col-12">
-                <div class="alert alert-warning text-center">No channel data available yet.</div>
-            </div>
+                <?php endforeach; ?>
             <?php endif; ?>
         </div>
     </div>
