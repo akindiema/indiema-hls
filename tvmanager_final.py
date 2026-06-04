@@ -9,7 +9,7 @@ from flask import Flask, render_template_string, request, redirect, url_for, fla
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
 
-# === DOCKER COMPATIBLE PATH ===
+# === FIXED FOR DOCKER ===
 DATA_DIR = os.getenv("DATA_DIR", "/data")
 CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
 
