@@ -7,7 +7,6 @@ curl_close($ch);
 $stats = json_decode($json, true) ?: [];
 
 $period = $_GET['period'] ?? '30d';
-$selected_channel = $_GET['channel'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -20,17 +19,13 @@ $selected_channel = $_GET['channel'] ?? '';
     <meta http-equiv="refresh" content="30">
     <style>
         body { background: #0f172a; color: #f8fafc; }
-        .card { background: #1e293b; border: none; }
+        .card { background: #1e293b; }
         canvas { max-height: 320px; }
     </style>
 </head>
 <body class="p-4">
 <div class="container">
-    <h2 class="mb-4">📊 IndieMa Analytics Dashboard</h2>
-
-    <div class="mb-4">
-        <a href="/api/export" class="btn btn-success btn-sm">📥 Export All to CSV</a>
-    </div>
+    <h2 class="mb-4">📊 IndieMa Analytics</h2>
 
     <ul class="nav nav-pills mb-4">
         <li class="nav-item"><a class="nav-link <?= $period=='1d'?'active':'' ?>" href="?period=1d">Today</a></li>
@@ -44,14 +39,10 @@ $selected_channel = $_GET['channel'] ?? '';
         <?php foreach ($stats as $s): ?>
         <div class="col-lg-6 mb-4">
             <div class="card p-4">
-                <div class="d-flex justify-content-between">
-                    <h4><?=htmlspecialchars($s['name'])?></h4>
-                    <span class="badge <?= ($s['status']??'')=='ONLINE' ? 'bg-success' : 'bg-danger' ?>">
-                        ● <?= $s['status'] ?? 'OFFLINE' ?>
-                    </span>
-                </div>
-                <hr>
-                <div class="row text-center mb-3">
+                <h4><?=htmlspecialchars($s['name'])?></h4>
+                <span class="badge <?= ($s['status']??'')=='ONLINE' ? 'bg-success' : 'bg-danger' ?>">● <?= $s['status'] ?? 'OFFLINE' ?></span>
+                
+                <div class="row text-center my-3">
                     <div class="col-6">
                         <small>Live Viewers</small><br>
                         <h3 class="text-info"><?= $s['viewers'] ?? 0 ?></h3>
@@ -62,7 +53,6 @@ $selected_channel = $_GET['channel'] ?? '';
                     </div>
                 </div>
                 <canvas id="chart-<?= $s['id'] ?>"></canvas>
-                <a href="/api/export?channel=<?= $s['id'] ?>" class="btn btn-outline-light btn-sm mt-2">Export CSV</a>
             </div>
         </div>
         <?php endforeach; ?>
@@ -83,15 +73,10 @@ document.querySelectorAll('canvas').forEach(canvas => {
                         label: 'Viewers',
                         data: data.map(item => item.viewers),
                         borderColor: '#60a5fa',
-                        tension: 0.4,
-                        fill: true
+                        tension: 0.4
                     }]
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
-                }
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
             });
         });
 });
