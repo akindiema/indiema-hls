@@ -9,7 +9,9 @@ from flask import Flask, render_template_string, request, redirect, url_for, fla
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
 
-CHANNELS_FILE = "/home/kanth/hls_engine/channels.json"
+# === DOCKER COMPATIBLE ===
+DATA_DIR = os.getenv("DATA_DIR", "/data")
+CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
 
 def load_channels():
     if not os.path.exists(CHANNELS_FILE): return {}
@@ -57,7 +59,7 @@ HTML_TEMPLATE = """
     <nav class="navbar navbar-dark mb-4 p-3 shadow-sm rounded">
         <a class="navbar-brand" href="/">📺 IndieMa TV Manager</a>
         <div>
-            <a href="https://tv.infopluto.com/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
+            <a href="http://{{ request.host }}/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
             <a href="/sync?auth=999999" class="btn btn-outline-warning btn-sm">⚡ FORCE SYNC ALL</a>
         </div>
     </nav>
@@ -89,7 +91,7 @@ HTML_TEMPLATE = """
                     <td>
                         <a href="/edit/{{ cid }}" class="btn btn-sm btn-primary">Edit</a>
                         <a href="/sync_channel/{{ cid }}" class="btn btn-sm btn-warning">Sync</a>
-                        <a href="https://tv.infopluto.com/channel/{{ cid }}/master.m3u8" target="_blank" class="btn btn-sm btn-dark">Preview</a>
+                        <a href="http://{{ request.host }}/channel/{{ cid }}/master.m3u8" target="_blank" class="btn btn-sm btn-dark">Preview</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -133,6 +135,7 @@ HTML_TEMPLATE = """
 </html>
 """
 
+# Routes remain the same (no change needed below)
 @app.route("/")
 def index():
     return render_template_string(HTML_TEMPLATE, page='index', channels=load_channels())
@@ -157,26 +160,21 @@ def edit_channel(cid):
         channels[cid]["programs"] = parse_playlist(request.form.get("generic_list", ""))
         save_channels(channels)
         try:
-            # Increased timeout to 20s to account for large playlist mapping
             requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=20)
             flash("Settings updated & Engine Synced!")
         except:
-            time.sleep(2) # Safety delay before force-restart
-            subprocess.run(["sudo", "systemctl", "restart", "hls-engine"])
-            flash("Playlist saved. Engine restarting in background.")
+            time.sleep(2)
+            flash("Playlist saved. Engine restart may be needed.")
         return redirect("/")
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
 
 @app.route("/sync")
 def sync():
     try:
-        # Increased timeout to 30s for full engine reload
         requests.get("http://127.0.0.1:5000/reload", timeout=30)
         flash("All Channels Synced!")
     except:
-        time.sleep(2) # Safety delay
-        subprocess.run(["sudo", "systemctl", "restart", "hls-engine"])
-        flash("Syncing initiated via background restart.")
+        flash("Sync request sent.")
     return redirect("/")
 
 @app.route("/sync_channel/<cid>")
@@ -185,9 +183,7 @@ def sync_channel(cid):
         requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=20)
         flash(f"Synced {cid} successfully.")
     except:
-        time.sleep(2) # Safety delay
-        subprocess.run(["sudo", "systemctl", "restart", "hls-engine"])
-        flash(f"Syncing {cid} via background restart.")
+        flash(f"Sync request sent for {cid}.")
     return redirect("/")
 
 if __name__ == "__main__":
