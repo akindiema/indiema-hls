@@ -13,7 +13,7 @@ from urllib.parse import urljoin
 from flask import Flask, Response, request
 from collections import OrderedDict
 
-# === DOCKER READY PATH ===
+# === DOCKER + BUNNY COMPATIBLE ===
 DATA_DIR = os.getenv("DATA_DIR", "/data")
 CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
 
@@ -27,8 +27,6 @@ http_session.mount('http://', adapter)
 http_session.mount('https://', adapter)
 
 app = Flask(__name__)
-
-CHANNELS_FILE = "/home/kanth/hls_engine/channels.json"
 
 active_engines = {}
 URL_MAP = {}
