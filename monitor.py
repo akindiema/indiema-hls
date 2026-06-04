@@ -3,9 +3,7 @@ import json
 import os
 import sqlite3
 from datetime import datetime, timedelta
-from flask import Flask, render_template_string, jsonify, request, send_file
-import csv
-import io
+from flask import Flask, render_template_string, jsonify, request
 
 app = Flask(__name__)
 
@@ -19,19 +17,13 @@ def init_db():
     conn.execute('''CREATE TABLE IF NOT EXISTS viewer_log (
                     timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
                     channel_id TEXT,
-                    viewers INTEGER)''')
+                    viewers INTEGER,
+                    ip TEXT,
+                    country TEXT)''')
     conn.commit()
     conn.close()
 
 init_db()
-
-def load_channels():
-    if not os.path.exists(CHANNELS_FILE): return {}
-    try:
-        with open(CHANNELS_FILE) as f:
-            return json.load(f)
-    except:
-        return {}
 
 def get_current_viewers(channel_id):
     try:
@@ -42,6 +34,15 @@ def get_current_viewers(channel_id):
         return int(output) if output else 5
     except:
         return 5
+
+def get_country_from_ip(ip):
+    try:
+        r = requests.get(f"https://ipapi.co/{ip}/country_name/", timeout=3)
+        if r.status_code == 200:
+            return r.text.strip()
+    except:
+        pass
+    return "Unknown"
 
 def generate_report():
     channels = load_channels()
@@ -54,9 +55,10 @@ def generate_report():
         except:
             status = "OFFLINE"
         
-        # Log to DB
+        # Log with IP & Country (simplified)
         conn = sqlite3.connect(DB_FILE)
-        conn.execute("INSERT INTO viewer_log (channel_id, viewers) VALUES (?, ?)", (cid, viewers))
+        conn.execute("INSERT INTO viewer_log (channel_id, viewers, country) VALUES (?, ?, ?)", 
+                     (cid, viewers, "IN"))  # Placeholder - improve with real IP later
         conn.commit()
         conn.close()
         
@@ -69,40 +71,28 @@ def generate_report():
         })
     return report
 
+def load_channels():
+    if not os.path.exists(CHANNELS_FILE): return {}
+    try:
+        with open(CHANNELS_FILE) as f:
+            return json.load(f)
+    except:
+        return {}
+
 @app.route("/api/stats")
 def api_stats():
     return jsonify(generate_report())
 
 @app.route("/api/analytics")
 def api_analytics():
-    channel_id = request.args.get('channel')
+    channel = request.args.get('channel')
     days = int(request.args.get('days', 30))
     conn = sqlite3.connect(DB_FILE)
     cutoff = (datetime.now() - timedelta(days=days)).isoformat()
-    query = "SELECT timestamp, viewers FROM viewer_log WHERE channel_id = ? AND timestamp >= ? ORDER BY timestamp"
-    data = conn.execute(query, (channel_id, cutoff)).fetchall()
+    query = "SELECT timestamp, viewers, country FROM viewer_log WHERE channel_id = ? AND timestamp >= ? ORDER BY timestamp"
+    data = conn.execute(query, (channel, cutoff)).fetchall()
     conn.close()
-    return jsonify([{"time": row[0], "viewers": row[1]} for row in data])
-
-@app.route("/api/export")
-def export_csv():
-    channel_id = request.args.get('channel')
-    conn = sqlite3.connect(DB_FILE)
-    query = "SELECT timestamp, viewers FROM viewer_log"
-    if channel_id:
-        query += " WHERE channel_id = ?"
-        data = conn.execute(query, (channel_id,)).fetchall()
-    else:
-        data = conn.execute(query).fetchall()
-    conn.close()
-
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["Timestamp", "Viewers"])
-    writer.writerows(data)
-    output.seek(0)
-
-    return send_file(output, mimetype="text/csv", as_attachment=True, download_name=f"{channel_id or 'all'}_analytics.csv")
+    return jsonify([{"time": row[0], "viewers": row[1], "country": row[2]} for row in data])
 
 @app.route("/monitor")
 def monitor():
