@@ -10,16 +10,20 @@ RUN pip install --no-cache-dir flask m3u8 requests waitress
 VOLUME /data
 ENV DATA_DIR=/data
 
-# Simple Nginx config
-RUN echo 'server { listen 80; server_name _; location / { proxy_pass http://127.0.0.1:5001; proxy_set_header Host $host; } location /channel/ { proxy_pass http://127.0.0.1:5000; proxy_set_header Host $host; } }' > /etc/nginx/conf.d/default.conf
+# Copy Nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+RUN mkdir -p /data /var/log/nginx
 
 EXPOSE 80
 
 CMD ["sh", "-c", "\
     mkdir -p /data && \
     cp -f /data/channels.json /app/channels.json 2>/dev/null || true && \
-    nginx && \
-    python app_final.py & \
-    python tvmanager_final.py & \
-    python yt_relay.py & \
-    wait"]
+    echo '=== Starting Nginx ===' > /data/startup.log && \
+    nginx -g 'daemon off;' >> /data/startup.log 2>&1 & \
+    echo '=== Starting Python Apps ===' >> /data/startup.log && \
+    python app_final.py >> /data/app.log 2>&1 & \
+    python tvmanager_final.py >> /data/manager.log 2>&1 & \
+    python yt_relay.py >> /data/yt.log 2>&1 & \
+    tail -f /data/startup.log"]
