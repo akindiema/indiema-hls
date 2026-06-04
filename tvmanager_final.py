@@ -59,7 +59,7 @@ HTML_TEMPLATE = """
     <nav class="navbar navbar-dark mb-4 p-3 shadow-sm rounded">
         <a class="navbar-brand" href="/">📺 IndieMa TV Manager</a>
         <div>
-            <a href="http://{{ request.host }}/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
+            <a href="http://109.224.229.110:5001/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
             <a href="/sync?auth=999999" class="btn btn-outline-warning btn-sm">⚡ FORCE SYNC ALL</a>
         </div>
     </nav>
