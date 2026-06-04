@@ -138,7 +138,8 @@ HTML_TEMPLATE = """
 # === ADD THIS MONITOR ROUTE ===
 @app.route("/monitor")
 def monitor():
-    return "Monitor page under construction. Use the main HLS URL for testing."
+    """Redirect to monitor.php"""
+    return redirect("/monitor.php")
 
 # Rest of your routes (unchanged)
 @app.route("/")
