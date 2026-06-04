@@ -3,7 +3,9 @@ import json
 import os
 import sqlite3
 from datetime import datetime, timedelta
-from flask import Flask, render_template_string, jsonify, request
+from flask import Flask, render_template_string, jsonify, request, send_file
+import csv
+import io
 
 app = Flask(__name__)
 
@@ -32,15 +34,14 @@ def load_channels():
         return {}
 
 def get_current_viewers(channel_id):
-    """Real count from Nginx access log"""
     try:
         if not os.path.exists(NGINX_LOG):
-            return 3
-        cmd = f"grep -a '{channel_id}' {NGINX_LOG} | grep '.ts' | tail -n 300 | awk '{{print $1}}' | sort -u | wc -l"
+            return 5
+        cmd = f"grep -a '{channel_id}' {NGINX_LOG} | grep '.ts' | tail -n 500 | awk '{{print $1}}' | sort -u | wc -l"
         output = os.popen(cmd).read().strip()
-        return int(output) if output else 3
+        return int(output) if output else 5
     except:
-        return 3
+        return 5
 
 def generate_report():
     channels = load_channels()
@@ -53,7 +54,7 @@ def generate_report():
         except:
             status = "OFFLINE"
         
-        # Log to database
+        # Log to DB
         conn = sqlite3.connect(DB_FILE)
         conn.execute("INSERT INTO viewer_log (channel_id, viewers) VALUES (?, ?)", (cid, viewers))
         conn.commit()
@@ -74,18 +75,34 @@ def api_stats():
 
 @app.route("/api/analytics")
 def api_analytics():
-    channel = request.args.get('channel')
+    channel_id = request.args.get('channel')
     days = int(request.args.get('days', 30))
     conn = sqlite3.connect(DB_FILE)
     cutoff = (datetime.now() - timedelta(days=days)).isoformat()
-    query = "SELECT timestamp, channel_id, viewers FROM viewer_log WHERE timestamp >= ?"
-    params = [cutoff]
-    if channel:
-        query += " AND channel_id = ?"
-        params.append(channel)
-    data = conn.execute(query, params).fetchall()
+    query = "SELECT timestamp, viewers FROM viewer_log WHERE channel_id = ? AND timestamp >= ? ORDER BY timestamp"
+    data = conn.execute(query, (channel_id, cutoff)).fetchall()
     conn.close()
-    return jsonify(data)
+    return jsonify([{"time": row[0], "viewers": row[1]} for row in data])
+
+@app.route("/api/export")
+def export_csv():
+    channel_id = request.args.get('channel')
+    conn = sqlite3.connect(DB_FILE)
+    query = "SELECT timestamp, viewers FROM viewer_log"
+    if channel_id:
+        query += " WHERE channel_id = ?"
+        data = conn.execute(query, (channel_id,)).fetchall()
+    else:
+        data = conn.execute(query).fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Timestamp", "Viewers"])
+    writer.writerows(data)
+    output.seek(0)
+
+    return send_file(output, mimetype="text/csv", as_attachment=True, download_name=f"{channel_id or 'all'}_analytics.csv")
 
 @app.route("/monitor")
 def monitor():
