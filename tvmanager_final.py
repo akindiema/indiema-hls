@@ -91,7 +91,7 @@ HTML_TEMPLATE = """
                     <td>
                         <a href="/edit/{{ cid }}" class="btn btn-sm btn-primary">Edit</a>
                         <a href="/sync_channel/{{ cid }}" class="btn btn-sm btn-warning">Sync</a>
-                        <a href="http://{{ request.host }}/channel/{{ cid }}/master.m3u8" target="_blank" class="btn btn-sm btn-dark">Preview</a>
+                        <a href="http://{{ request.host | replace(':5001','') }}/channel/{{ cid }}/master.m3u8" target="_blank" class="btn btn-sm btn-dark">Preview</a>
                     </td>
                 </tr>
                 {% endfor %}
