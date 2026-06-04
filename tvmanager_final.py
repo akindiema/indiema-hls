@@ -4,7 +4,7 @@ import re
 import requests
 import subprocess
 import time
-from flask import Flask, render_template_string, request, redirect, url_for, flash
+from flask import Flask, render_template_string, request, redirect, url_for, flash, jsonify
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
@@ -44,6 +44,7 @@ def parse_playlist(raw_text):
                 })
     return progs
 
+# ====================== HTML TEMPLATE ======================
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -97,8 +98,8 @@ HTML_TEMPLATE = """
                 {% endfor %}
             </tbody>
         </table>
-
     {% elif page == 'add' %}
+        <!-- Add page content same as before -->
         <div class="card shadow-sm p-4">
             <h3>Create New Channel</h3>
             <form method="POST">
@@ -109,8 +110,8 @@ HTML_TEMPLATE = """
                 <a href="/" class="btn btn-link btn-block">Back to Dashboard</a>
             </form>
         </div>
-
     {% elif page == 'edit' %}
+        <!-- Edit page same as before -->
         <div class="card shadow-sm p-4">
             <h3>Editing: {{ info.name }}</h3>
             <form method="POST">
@@ -135,17 +136,45 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# === ADD THIS MONITOR ROUTE ===
-@app.route("/monitor")
-def monitor():
-    """Redirect to monitor.php"""
-    return redirect("/monitor.php")
-
-# Rest of your routes (unchanged)
 @app.route("/")
 def index():
     return render_template_string(HTML_TEMPLATE, page='index', channels=load_channels())
 
+@app.route("/monitor")
+def monitor():
+    return redirect("/monitor.php")
+
+@app.route("/monitor.php")
+def monitor_php():
+    try:
+        with open("monitor.php", "r", encoding="utf-8") as f:
+            content = f.read()
+        return content
+    except:
+        return "monitor.php not found", 404
+
+# === PROPER API FOR MONITOR ===
+@app.route("/api/stats")
+def api_stats():
+    channels = load_channels()
+    report = []
+    for cid, info in channels.items():
+        try:
+            r = requests.get(f"http://127.0.0.1:5000/channel/{cid}/master.m3u8", timeout=3)
+            status = "ONLINE" if r.status_code == 200 else "OFFLINE"
+        except:
+            status = "OFFLINE"
+        
+        report.append({
+            "id": cid,
+            "name": info.get("name", cid),
+            "status": status,
+            "clip_count": len(info.get("programs", [])),
+            "viewers": 0   # You can improve this later with nginx log parsing
+        })
+    return jsonify(report)
+
+# Other routes (add, edit, sync, etc.) remain the same
 @app.route("/add", methods=["GET", "POST"])
 def add_channel():
     if request.method == "POST":
@@ -169,7 +198,7 @@ def edit_channel(cid):
             requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=20)
             flash("Settings updated & Engine Synced!")
         except:
-            flash("Playlist saved. Engine may need restart.")
+            flash("Playlist saved.")
         return redirect("/")
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
 
