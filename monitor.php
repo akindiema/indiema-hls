@@ -1,13 +1,14 @@
 <?php
-// Configuration
-$api_url = "http://127.0.0.1:5000/";   // Changed for Docker
+// Configuration - Call the correct API from monitor route
+$api_url = "http://127.0.0.1:5001/api/stats";   // This calls the monitor API
 
 $page_title = "IndieMa | Real-Time Health";
 
-// Fetch data from the Python Monitor
+// Fetch data
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $api_url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 5);
 $json_data = curl_exec($ch);
 curl_close($ch);
 
@@ -42,12 +43,12 @@ $stats = json_decode($json_data, true) ?: [];
                 <div class="card-stream p-4 shadow-sm">
                     <div class="d-flex justify-content-between">
                         <div>
-                            <h4 class="mb-1"><?php echo $stream['name']; ?></h4>
-                            <p class="text-muted small mb-0">ID: <?php echo $stream['id']; ?></p>
+                            <h4 class="mb-1"><?php echo htmlspecialchars($stream['name'] ?? 'Unknown'); ?></h4>
+                            <p class="text-muted small mb-0">ID: <?php echo htmlspecialchars($stream['id'] ?? ''); ?></p>
                         </div>
                         <div>
-                            <span class="status-badge <?php echo strtolower($stream['status']); ?>">
-                                ● <?php echo $stream['status']; ?>
+                            <span class="status-badge <?php echo strtolower($stream['status'] ?? 'OFFLINE'); ?>">
+                                ● <?php echo strtoupper($stream['status'] ?? 'OFFLINE'); ?>
                             </span>
                         </div>
                     </div>
@@ -55,16 +56,22 @@ $stats = json_decode($json_data, true) ?: [];
                     <div class="row text-center">
                         <div class="col-6">
                             <div class="text-muted small">Active Clips</div>
-                            <div class="h5 mb-0"><?php echo $stream['count']; ?></div>
+                            <div class="h5 mb-0"><?php echo $stream['clip_count'] ?? 0; ?></div>
                         </div>
                         <div class="col-6 border-start border-secondary">
                             <div class="text-muted small">Live Viewers</div>
-                            <div class="h5 mb-0 text-info"><?php echo rand(5, 15); // Logic for real users below ?></div>
+                            <div class="h5 mb-0 text-info"><?php echo $stream['viewers'] ?? 0; ?></div>
                         </div>
                     </div>
                 </div>
             </div>
             <?php endforeach; ?>
+            
+            <?php if (empty($stats)): ?>
+            <div class="col-12">
+                <div class="alert alert-warning text-center">No channel data available yet.</div>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 </body>
