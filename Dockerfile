@@ -1,6 +1,8 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y nginx curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    ffmpeg nginx curl procps \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . /app
@@ -10,13 +12,13 @@ RUN pip install --no-cache-dir flask m3u8 requests waitress
 VOLUME /data
 ENV DATA_DIR=/data
 
-# Simple & Reliable Nginx (No Redirects)
+# Create Nginx config
 RUN cat > /etc/nginx/conf.d/default.conf << 'EOF'
 server {
     listen 80 default_server;
     server_name _;
 
-    # TV Manager
+    # TV Manager Dashboard
     location / {
         proxy_pass http://127.0.0.1:5001;
         proxy_set_header Host $host;
@@ -25,7 +27,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # HLS Streaming - Critical for SSAI
+    # HLS Streaming (important for SSAI)
     location /channel/ {
         proxy_pass http://127.0.0.1:5000;
         proxy_set_header Host $host;
@@ -35,6 +37,8 @@ server {
     }
 }
 EOF
+
+RUN mkdir -p /data && cp /app/channels.json /data/ 2>/dev/null || true
 
 EXPOSE 80
 
