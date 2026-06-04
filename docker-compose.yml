@@ -1,0 +1,13 @@
+services:
+  hls:
+    build: .
+    ports:
+      - "5000:5000"   # Main HLS Streaming
+      - "5001:5001"   # TV Manager
+      - "5010:5010"   # YT Relay
+    volumes:
+      - data:/data
+    restart: unless-stopped
+
+volumes:
+  data:
