@@ -59,7 +59,7 @@ HTML_TEMPLATE = """
     <nav class="navbar navbar-dark mb-4 p-3 shadow-sm rounded">
         <a class="navbar-brand" href="/">📺 IndieMa TV Manager</a>
         <div>
-            <a href="http://109.224.229.110:5001/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
+            <a href="/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
             <a href="/sync?auth=999999" class="btn btn-outline-warning btn-sm">⚡ FORCE SYNC ALL</a>
         </div>
     </nav>
@@ -91,7 +91,7 @@ HTML_TEMPLATE = """
                     <td>
                         <a href="/edit/{{ cid }}" class="btn btn-sm btn-primary">Edit</a>
                         <a href="/sync_channel/{{ cid }}" class="btn btn-sm btn-warning">Sync</a>
-                        <a href="http://{{ request.host | replace(':5001','') }}/channel/{{ cid }}/master.m3u8" target="_blank" class="btn btn-sm btn-dark">Preview</a>
+                        <a href="http://{{ request.host | replace(':5001',':5000') }}/channel/{{ cid }}/master.m3u8" target="_blank" class="btn btn-sm btn-dark">Preview</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -135,7 +135,12 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# Routes remain the same (no change needed below)
+# === ADD THIS MONITOR ROUTE ===
+@app.route("/monitor")
+def monitor():
+    return "Monitor page under construction. Use the main HLS URL for testing."
+
+# Rest of your routes (unchanged)
 @app.route("/")
 def index():
     return render_template_string(HTML_TEMPLATE, page='index', channels=load_channels())
@@ -163,8 +168,7 @@ def edit_channel(cid):
             requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=20)
             flash("Settings updated & Engine Synced!")
         except:
-            time.sleep(2)
-            flash("Playlist saved. Engine restart may be needed.")
+            flash("Playlist saved. Engine may need restart.")
         return redirect("/")
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
 
