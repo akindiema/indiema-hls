@@ -1,0 +1,543 @@
+{
+    "indiematv": {
+        "name": "IndieMa TV",
+        "pin": "1234",
+        "programs": [
+            {
+                "title": "Operation JuJuPi Movie Part 1",
+                "url": "https://vz-533a0c40-d0c.b-cdn.net/7f144924-e9a5-4a99-a2f8-12572d9ee6cc/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Operation JuJuPi Movie Part 2",
+                "url": "https://vz-533a0c40-d0c.b-cdn.net/e912f895-d5d0-440e-94b3-664e061e6990/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Operation JuJuPi Movie Part 3",
+                "url": "https://vz-533a0c40-d0c.b-cdn.net/43081048-0b20-4dfb-a5c6-8a034d9c2dd7/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Operation JuJuPi Movie Part 4",
+                "url": "https://vz-533a0c40-d0c.b-cdn.net/eb234e8c-9aba-45ed-bd17-1a122f5ca70f/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Operation JuJuPi Movie Part 5",
+                "url": "https://vz-533a0c40-d0c.b-cdn.net/bf5bea0a-d553-4ee3-9d87-8abf31cc3e4b/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Operation JuJuPi Movie Part 6",
+                "url": "https://vz-533a0c40-d0c.b-cdn.net/4b007bb4-47d7-4dab-95af-4a075118484f/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Goko Mako Movie Part 1",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/2c6224de-931c-42c6-949f-ff4bab16ff25/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Goko Mako Movie Part 2",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/cc472a9c-48d6-4968-bf96-f7c3486b816d/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Goko Mako Movie Part 3",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/b430ca36-b518-4428-8f40-7138c42c1676/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Goko Mako Movie Part 4",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/a87697c6-2183-4412-9bf1-398c8ac1ddd2/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Goko Mako Movie Part 5",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/c87d6afc-efea-4c4e-9a3c-ce45031c12ee/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Goko Mako Movie Part 6",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/e183d495-eab9-4218-b001-052e6aa75a66/playlist.m3u8",
+                "category": "Feature Films"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "NS Coffee AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/ded64d16-64db-4a6e-bd7b-f5ff3e81d192/playlist.m3u8",
+                "category": "InfoPluto Concept Ads"
+            },
+            {
+                "title": "Seifer Foundation AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/84799065-c95b-4d36-9933-aa079346f02e/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "Merlok Interior AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/667f019c-91bb-433f-94b6-4fa4dbbad727/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "SK Plywoods AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/4b5dd571-095a-4854-9293-8edb3631bb55/playlist.m3u8",
+                "category": "InfoPluto Concept Ads"
+            },
+            {
+                "title": "Mahalakshmi Laser Craft AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/8d4b6cd4-cefa-4fb0-9cdb-d519bf638d45/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "Annapaal AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/461c0e28-e2e0-4b77-b61f-e9d2372c4843/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "Everest Weighing Scale AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/efa2f5d3-bf3b-444c-a841-004a14066b0f/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "iPest AD 1",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/52fd0643-6642-44b5-8afe-658d7eb319dc/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "iPest AD 2",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/63cf046a-1fa7-4701-aa0a-0b6e03510453/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "Kavery Tanks AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/3c784d4a-1565-4140-9db7-448b887f161d/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "Sharma Tiles AD",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/8aee2979-390c-41b4-a6b5-1284faed1249/playlist.m3u8",
+                "category": "Infopluto Concept Ads"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Flagship Plan",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/4e22c10f-39d2-47d3-b940-9552f514d322/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Leadership Plan",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/7e27a94c-4b07-46f8-b3f1-f99ee1d69421/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/2b069bba-3dcb-4c1a-9970-2054bfe54cd5/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Tutorial",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/a80e63e3-39e4-41b7-b10f-36191f970c17/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Why IndieMa",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/d4365473-becd-47fe-92b6-9257dfaa07aa/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa SoloTravellers",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/52144c11-54a7-4a57-8425-6f5af7d9761f/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa USP",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/988b5030-c381-4273-8ff0-ad5b254ff7ff/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Breaks The Paywall",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/f5d41634-b393-46b8-bdb7-ac9f0fb67059/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Chatrooms",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/35a0be4a-a7ca-4ba2-b278-a94e3577d88c/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Song",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/8df925e6-aa06-4796-88e5-8947953ec795/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Way to Connect",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/a7bb6647-9aaa-4dbe-adba-fcdec70a4957/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Post Types",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/f91a9199-2df2-45c5-9fea-c96fda34df5b/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Promo Animated",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/7d4ec4f8-b66a-4862-8f04-339a2de31922/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa CBE Business Exchange",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/36bf7dac-3986-467a-be67-5942e0783828/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Freelancers",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/e73bff1c-207c-48ea-8b87-f8ff035a3eaf/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Event Registrations",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/20923375-a269-4a0d-8058-32463464b659/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "IndieMa Private Network",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/50320894-77cb-402f-9915-f2eb893b8ee4/playlist.m3u8",
+                "category": "IndieMaHighlights"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Electoral Reforms Song",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/7e7dc264-4367-48cb-8d97-70a621849948/playlist.m3u8",
+                "category": "MusicVideos"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Nature Has Answers",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/e228acf7-2e50-41e0-aacb-6e9bd3c17403/playlist.m3u8",
+                "category": "MusicVideos"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Extreme Tax Violent Movies",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/bd748ac4-1cb2-49b3-ab21-9b849932989f/playlist.m3u8",
+                "category": "KnowledgeSeries"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Unsubscribe OTT Now",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/ba8152e6-2a6c-49e5-b1a9-a2729f3be4b3/playlist.m3u8",
+                "category": "KnowledgeSeries"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Operation JuJuPi PM Speech",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/a007af3d-cbaa-4670-a543-4647c1409600/playlist.m3u8",
+                "category": "FeatureFilms"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Operation JuJuPi PM Speech 2",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/dab22d0d-3411-4887-851c-3c81bc275721/playlist.m3u8",
+                "category": "FeatureFilms"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Day 2 Behind the Scene",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/bb3cd347-d5ab-4198-abd4-6e40a6784418/playlist.m3u8",
+                "category": "JustForFun"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Day 4 Behind the Scene",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/8f387953-eb38-4a9e-8018-5a0153323f45/playlist.m3u8",
+                "category": "JustForFun"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Rivet Trailer",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/635b3517-87e5-4989-b9f7-1e04853e834f/playlist.m3u8",
+                "category": "Trailers"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Operation JuJuPi Trailer",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/b1df210e-65b3-4d17-9a4f-0c2f9b553dc2/playlist.m3u8",
+                "category": "Trailers"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "OJ SneakPeek 1",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/60c34cd7-13d5-4f7b-be31-e77b9302a997/playlist.m3u8",
+                "category": "SneakPeeks"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Goko Mako Sneak Peek 1",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/f477f74f-e2c2-42e0-a2b3-a2c12578929e/playlist.m3u8",
+                "category": "SneakPeeks"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            },
+            {
+                "title": "Covid60 ShortFilm",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/d3ef109e-0310-4e40-b276-be974cd28ebd/playlist.m3u8",
+                "category": "ShortFilms"
+            },
+            {
+                "title": "IndieMa Tv Promo",
+                "url": "https://vz-e5929e74-eee.b-cdn.net/62e91cf9-8e9a-4cbd-9426-9cd8d4b941c0/playlist.m3u8",
+                "category": "IndieMa Promos"
+            }
+        ],
+        "icon": "https://Indiema-images.b-cdn.net/indiema%20iconpng.png"
+    },
+    "saathvigam": {
+        "name": "Saathvigam",
+        "pin": "1234",
+        "programs": [
+            {
+                "title": "Vinayagar Slogam",
+                "url": "https://vz-3c12b3fe-71d.b-cdn.net/36e47741-c0e4-4dd4-9da3-7f6c220fc62e/playlist.m3u8",
+                "category": "Slokas"
+            },
+            {
+                "title": "Vishnu Slogam",
+                "url": "https://vz-3c12b3fe-71d.b-cdn.net/6e20b617-76bf-4e83-af9c-e50b1ef17908/playlist.m3u8",
+                "category": "Slokas"
+            },
+            {
+                "title": "Ramar Slogam",
+                "url": "https://vz-3c12b3fe-71d.b-cdn.net/2b370428-4ea7-427a-b0d2-5ecc878d10a0/playlist.m3u8",
+                "category": "Slokas"
+            },
+            {
+                "title": "Saraswathi Slogam",
+                "url": "https://vz-3c12b3fe-71d.b-cdn.net/9f621d5b-4d4d-4cb7-84de-86b7bfd33669/playlist.m3u8",
+                "category": "Slokas"
+            }
+        ],
+        "icon": "https://Saathvigam.b-cdn.net/saathvigamlogoicon.png"
+    },
+    "astropluto": {
+        "name": "Astro Pluto",
+        "icon": "https://Astropluto.b-cdn.net/ASTROPLUTO%20LOGO%20Black%20Bg.jpg",
+        "programs": [
+            {
+                "title": "Venus Balaaji Astro Pluto Part 1",
+                "url": "https://vz-8fd3045d-c34.b-cdn.net/00901e69-0d42-413b-897f-0357329e4376/playlist.m3u8",
+                "category": "Talkshow"
+            },
+            {
+                "title": "Venus Balaaji Astro Pluto Part 2",
+                "url": "https://vz-8fd3045d-c34.b-cdn.net/cca74334-adc0-411e-96a4-7f07e38f6e86/playlist.m3u8",
+                "category": "Talkshow"
+            },
+            {
+                "title": "Venus Balaaji Astro Pluto Part 3",
+                "url": "https://vz-8fd3045d-c34.b-cdn.net/38c0cc17-79bb-43a4-9f32-44ca1705bdac/playlist.m3u8",
+                "category": "Talkshow"
+            },
+            {
+                "title": "Venus Balaaji Astro Pluto Part 4",
+                "url": "https://vz-8fd3045d-c34.b-cdn.net/19732bf1-1e4e-46ec-aeb7-0c5253bc872b/playlist.m3u8",
+                "category": "Talkshow"
+            }
+        ],
+        "schedules": []
+    }
+}
