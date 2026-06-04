@@ -8,6 +8,11 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # This permissions block is required to allow the GITHUB_TOKEN to push to the registry
+    permissions:
+      contents: read
+      packages: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,6 +28,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          push: true
-          tags: ghcr.io/akindiema/indiema-hls:latest
           file: ./Dockerfile
+          push: true
+          # Tags the image correctly for GHCR
+          tags: ghcr.io/akindiema/indiema-hls:latest
