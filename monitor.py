@@ -11,7 +11,6 @@ DATA_DIR = os.getenv("DATA_DIR", "/data")
 CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
 DB_FILE = os.path.join(DATA_DIR, "analytics.db")
 
-# Init DB
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     conn.execute('''CREATE TABLE IF NOT EXISTS viewer_log (
@@ -31,68 +30,60 @@ def load_channels():
     except:
         return {}
 
-def log_viewers():
-    channels = load_channels()
-    for cid in channels.keys():
-        try:
-            r = requests.get(f"http://127.0.0.1:5000/channel/{cid}/master.m3u8", timeout=3)
-            viewers = 8 if r.status_code == 200 else 0   # Placeholder - improve later
-            conn = sqlite3.connect(DB_FILE)
-            conn.execute("INSERT INTO viewer_log (channel_id, viewers) VALUES (?, ?)", (cid, viewers))
-            conn.commit()
-            conn.close()
-        except:
-            pass
+def get_current_viewers(channel_id):
+    """Basic count from nginx log"""
+    try:
+        log_file = "/data/nginx_access.log"
+        if not os.path.exists(log_file):
+            return 5
+        cmd = f"grep '{channel_id}' {log_file} | grep '.ts' | tail -n 200 | awk '{{print $1}}' | sort -u | wc -l"
+        output = os.popen(cmd).read().strip()
+        return int(output) if output else 5
+    except:
+        return 5
 
-def get_analytics(channel_id=None, period="30d"):
-    conn = sqlite3.connect(DB_FILE)
-    days = {"1d":1, "7d":7, "15d":15, "30d":30, "90d":90, "1y":365, "all":9999}.get(period, 30)
-    
-    query = "SELECT timestamp, channel_id, viewers FROM viewer_log WHERE timestamp >= ?"
-    params = [(datetime.now() - timedelta(days=days)).isoformat()]
-    if channel_id:
-        query += " AND channel_id = ?"
-        params.append(channel_id)
-    
-    data = conn.execute(query, params).fetchall()
-    conn.close()
-    return data
-
-# ====================== ROUTES ======================
-@app.route("/api/stats")
-def api_stats():
-    log_viewers()   # Log current viewers
+def generate_report():
     channels = load_channels()
     report = []
     for cid, info in channels.items():
+        viewers = get_current_viewers(cid)
         try:
             r = requests.get(f"http://127.0.0.1:5000/channel/{cid}/master.m3u8", timeout=3)
             status = "ONLINE" if r.status_code == 200 else "OFFLINE"
         except:
             status = "OFFLINE"
+        
         report.append({
             "id": cid,
             "name": info.get("name", cid),
             "status": status,
             "clip_count": len(info.get("programs", [])),
-            "viewers": 0
+            "viewers": viewers
         })
-    return jsonify(report)
+    return report
+
+@app.route("/api/stats")
+def api_stats():
+    return jsonify(generate_report())
 
 @app.route("/api/analytics")
 def api_analytics():
     channel = request.args.get('channel')
-    period = request.args.get('period', '30d')
-    data = get_analytics(channel, period)
+    days = int(request.args.get('days', 30))
+    conn = sqlite3.connect(DB_FILE)
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+    query = "SELECT timestamp, channel_id, viewers FROM viewer_log WHERE timestamp >= ?"
+    params = [cutoff]
+    if channel:
+        query += " AND channel_id = ?"
+        params.append(channel)
+    data = conn.execute(query, params).fetchall()
+    conn.close()
     return jsonify(data)
 
 @app.route("/monitor")
 def monitor():
     return redirect("/monitor.php")
-
-@app.route("/")
-def home():
-    return "Analytics running. Go to /monitor.php"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002)
