@@ -12,8 +12,8 @@ RUN pip install --no-cache-dir flask m3u8 requests waitress
 VOLUME /data
 ENV DATA_DIR=/data
 
-# Create Nginx config using echo (avoid parse error)
-RUN echo 'server { listen 80 default_server; server_name _; access_log /data/nginx_access.log combined; error_log /data/nginx_error.log warn; location / { proxy_pass http://127.0.0.1:5001; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; } location /channel/ { proxy_pass http://127.0.0.1:5000; proxy_set_header Host $host; proxy_set_header X-Real-IP $remote_addr; proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; proxy_set_header X-Forwarded-Proto $scheme; } }' > /etc/nginx/conf.d/default.conf
+# Copy Nginx config from file
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 RUN mkdir -p /data && cp /app/channels.json /data/ 2>/dev/null || true
 
