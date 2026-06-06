@@ -4,7 +4,7 @@ import re
 import requests
 import subprocess
 import time
-from flask import Flask, render_template_string, request, redirect, url_for, flash, jsonify
+from flask import Flask, render_template_string, request, redirect, url_for, flash, jsonify, Response
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
@@ -219,6 +219,16 @@ def sync_channel(cid):
     except:
         flash(f"Sync request sent for {cid}.")
     return redirect("/")
-
+# === INTERNAL BRIDGE TO FETCH EPG FROM PORT 5000 ===
+@app.route("/epg.xml")
+def proxy_epg_from_engine():
+    try:
+        response = requests.get("http://127.0.0.1:5000/epg.xml", timeout=10)
+        if response.status_code == 200:
+            return Response(response.content, mimetype="application/xml", headers={"Access-Control-Allow-Origin": "*"})
+        else:
+            return f"Streaming engine error: {response.status_code}", 502
+    except Exception as e:
+        return f"Internal connection failed: {str(e)}", 500
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
