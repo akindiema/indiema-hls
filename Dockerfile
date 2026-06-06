@@ -10,21 +10,23 @@ RUN pip install --no-cache-dir flask m3u8 requests waitress
 VOLUME /data
 ENV DATA_DIR=/data
 
+# Create directory and copy configuration and certificate files natively
+RUN mkdir -p /etc/nginx/ssl
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf /etc/nginx/nginx.conf
+
 COPY nginx.conf /etc/nginx/nginx.conf
+COPY fullchain.pem /etc/nginx/ssl/fullchain.pem
+COPY privkey.pem /etc/nginx/ssl/privkey.pem
+
+RUN chmod 644 /etc/nginx/ssl/fullchain.pem && chmod 600 /etc/nginx/ssl/privkey.pem
 
 RUN mkdir -p /data
 
 EXPOSE 80 443
 
-# Standard safe initialization loop:
 CMD ["sh", "-c", " \
 mkdir -p /data && \
 cp -f /app/channels.json /data/channels.json 2>/dev/null || true; \
-cp -f /app/fullchain.pem /data/fullchain.pem 2>/dev/null || true; \
-cp -f /app/privkey.pem /data/privkey.pem 2>/dev/null || true; \
-chmod 600 /data/privkey.pem 2>/dev/null || true; \
-chmod 644 /data/fullchain.pem 2>/dev/null || true; \
 nginx -g 'daemon off;' & \
 python -u tvmanager_final.py & \
 python -u app_final.py & \
