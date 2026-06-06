@@ -1,6 +1,6 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y ffmpeg nginx curl procps openssl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y ffmpeg nginx curl procps && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY . /app
@@ -10,32 +10,123 @@ RUN pip install --no-cache-dir flask m3u8 requests waitress
 VOLUME /data
 ENV DATA_DIR=/data
 
-# Clean up default configurations and cleanly link your custom setup
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf /etc/nginx/nginx.conf
 COPY nginx.conf /etc/nginx/nginx.conf
 
 RUN mkdir -p /data
 
-# Open both standard web routing ports natively 
 EXPOSE 80 443
 
-# SECURE PRODUCTION BOOT LOOP:
-# 1. Copies channels data
-# 2. Safely copies your exact privkey.pem and fullchain.pem files to the persistent volume
-# 3. Runs an absolute safety check: if files fail to copy, auto-creates self-signed certificates so Nginx CANNOT crash
-# 4. Corrects file read permissions and boots up Nginx + your Python streaming applications
+# SECURE IN-LINE PRODUCTION BOOT ENGINE:
+# 1. Backs up or maps internal JSON configs.
+# 2. Writes the Complete Bundled Let's Encrypt Chain directly to /data/fullchain.pem.
+# 3. Writes the EC Private Key directly to /data/privkey.pem.
+# 4. Corrects read permissions and launches Nginx and the Python backends.
 CMD ["sh", "-c", " \
 mkdir -p /data && \
 cp -f /app/channels.json /data/channels.json 2>/dev/null || true; \
-cp -f /app/privkey.pem /data/privkey.pem 2>/dev/null || true; \
-cp -f /app/fullchain.pem /data/fullchain.pem 2>/dev/null || true; \
-if [ ! -f /data/privkey.pem ] || [ ! -s /data/privkey.pem ] || [ ! -f /data/fullchain.pem ] || [ ! -s /data/fullchain.pem ]; then \
-    echo 'SSL missing or empty! Generating temporary safety fallback certs...'; \
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /data/privkey.pem -out /data/fullchain.pem -subj '/CN=fast.infopluto.com'; \
-fi; \
-chmod 644 /data/*.pem 2>/dev/null || true; \
+\
+printf '%s\n' \
+'-----BEGIN CERTIFICATE-----' \
+'MIIDxTCCA0ygAwIBAgISBn4e3a8go7MspYPJuwAJsC0sMAoGCCqGSM49BAMDMDMx' \
+'CzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1MZXQncyBFbmNyeXB0MQwwCgYDVQQDEwNZ' \
+'RTEwHhcNMjYwNjA0MTA1NjM3WhcNMjYwOTAyMTA1NjM2WjAdMRswGQYDVQQDExJm' \
+'YXN0LmluZm9wbHV0by5jb20wdjAQBgcqhkjOPQIBBgUrgQQAIgNiAATc9fdeUkss' \
+'IFSwjlBI2EHd8CX5YL60OwOmv+5DkuU4uJoYVSw/0vyckbdY7ZNnBsfBaJNUekRf' \
+'kv0L1YNn67pfB6e3hVmw5AUF2QGuxmDOhjLJhm1tNes+2uVnMROhhWyjggI3MIIC' \
+'MzAOBgNVHQ8BAf8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDAYDVR0TAQH/' \
+'BAIwADAdBgNVHQ4EFgQUuqwosIZUt2RlroEo6LBzPA/JbCYwHwYDVR0jBBgwFoAU' \
+'uyDKRwv+1+Wc+Y8JKqOMN0WxvNgwMwYIKwYBBQUHAQEEJzAlMCMGCCsGAQUFBzAC' \
+'hhdodHRwOi8veWUxLmkubGVuY3Iub3JnLzA1BgNVHREELjAsghJmYXN0LmluZm9w' \
+'bHV0by5jb22CFnd3dy5mYXN0LmluZm9wbHV0by5jb20wEwYDVR0gBAwwCjAIBgZn' \
+'gQwBAgEwLgYDVR0fBCcwJTAjoCGgH4YdaHR0cDovL3llMS5jLmxlbmNyLm9yZy80' \
+'NS5jcmwwggELBgorBgEEAdZ5AgQCBIH8BIH5APcAdgCUTkOH+uzB74HzGSQmqBhl' \
+'AcfTXzgCAT9yZ31VNy4Z2AAAAZ6SfLijAAAEAwBHMEUCIAt3ejmSiNxTEdt2jW9E' \
+'thvWTDV9GvGWwR62QxniOiVkAiEAsPVCE8AjmvB0NN1J5REdxXA4vU6IoKXx+WlF' \
+'yJ5bLn8AfQAm42RuWGkhI7w0P0ckNZs3ks0kWojYFdOTM/2ZGKtHIwAAAZ6SfLgm' \
+'AAgAAAUAGQ85SgQDAEYwRAIgUIeD8saISHTLctPApdmkxMFEuwZABRNSnMKJ44P8' \
+'ljoCIBecLzkk8mMRS/vEiWpUZoi57+0L4b+70oVu0AFw8IiIMAoGCCqGSM49BAMD' \
+'A2cAMGQCMFVdWez5fd8Fg1FYG5ZO5C6Pvyq1ajLdIRpeB7RoxLfYNLBv4MCMnyr4' \
+'rfT90bw5rAIwaA3kji2/0sXkBrQTOOUhJZok25oS6fHVoGhBmFUVYBVimxigIJwu' \
+'eaSaoAwrjM1e' \
+'-----END CERTIFICATE-----' \
+'-----BEGIN CERTIFICATE-----' \
+'MIICizCCAhGgAwIBAgIQXd1w3TH4AchcGGp6BLgK/jAKBggqhkjOPQQDAzAuMQsw' \
+'CQYDVQQGEwJVUzENMAsGA1UEChMESVNSRzEQMA4GA1UEAxMHUm9vdCBZRTAeFw0y' \
+'NTA5MDMwMDAwMDBaFw0yODA5MDIyMzU5NTlaMDMxCzAJBgNVBAYTAlVTMRYwFAYD' \
+'VQQKEw1MZXQncyBFbmNyeXB0MQwwCgYDVQQDEwNZRTEwdjAQBgcqhkjOPQIBBgUr' \
+'gQQAIgNiAAQHZVB1/mimla2hfSurylScjPMZaOJXLz/NnAc2sylm8WDyhU9Ccp+z' \
+'ASQi5vSwGGJjSGklkD9fdPR8GpyDIOIjCEfrnbt/v+ZSEPLLEGbaM6EccDbN7p9x' \
+'teIm2Avf+ryjge4wgeswDgYDVR0PAQH/BAQDAgGGMBMGA1UdJQQMMAoGCCsGAQUF' \
+'BwMBMBIGA1UdEwEB/wQIMAYBAf8CAQAwHQYDVR0OBBYEFLsgykcL/tflnPmPCSqj' \
+'jjDdFsbzYMB8GA1UdIwQYMBaAFKPIJlqOoUzQNWP8myPIOq5W809WMDIGCCsGAQUF' \
+'BwEBBCYwJDAiBggrBgEFBQcwAoYWaHR0cDovL3llLmkubGVuY3Iub3JnLzATBgNV' \
+'HSAEDDAKMAgGBmeBDAECATAnBgNVHR8EIDAeMBygGqAYhhZodHRwOi8veWUuYy5s' \
+'ZW5jci5vcmcvMAoGCCqGSM49BAMDA2gAMGUCMQDgjUEahFT/h3DRakqiPZpLvPgf' \
+'Zwkt6K2EOMmh1nvEzl83eMLYcod4GCl3b0J1Nn0CMBNYmEQJb4CEG5WoOe7aRn/L' \
+'VKu6saHmHEynI7ysIPd8zQsK1HdmhlHKlw9Z5GpGvA==' \
+'-----END CERTIFICATE-----' \
+'-----BEGIN CERTIFICATE-----' \
+'MIICpjCCAiugAwIBAgIRAIchZfw0tuX7qK3Vs3BftTowCgYIKoZIzj0EAwMwTzEL' \
+'MAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2VhcmNo' \
+'IEdyb3VwMRUwEwYDVQQDEwxJU1JHIFJvb3QgWDIwHhcNMjYwNTEzMDAwMDAwWhcN' \
+'MzIwOTAyMjM1OTU5WjAuMQswCQYDVQQGEwJVUzENMAsGA1UEChMESVNSRzEQMA4G' \
+'A1UEAxMHUm9vdCBZRTB2MBAGByqGSM49AgEGBSuBBAAiA2IABDwS/6vhrcVqcbBo' \
+'+wgdI3fwn9x7DNJJOY/lTOti0vkwuRN87RhEhTH17E7XyFjWsPYhIPt/wzOqxTd2' \
+'b+4ZJNy9ID04YywF9U5zasDVyGSNErVNtz8uSGh5izW87j77GaOB6zCB6DAOBgNV' \
+'HQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB' \
+/zAdBgNVHQ4EFgQUo8gmWo6hTNA1Y/ybI8g6rlbzT1YwHwYDVR0jBBgwFoAUfEKW' \
+'rt5LSDv6kviejM9ti6lyN5UwMgYIKwYBBQUHAQEEJjAkMCIGCCsGAQUFBzAChhZo' \
+'dHRwOi8veDIuaS5sZW5jci5vcmcvMBMGA1UdIAQMMAowCAYGZ4EMAQIBMCcGA1Ud' \
+'HwQgMB4wHKAaoBiGFmh0dHA6Ly94Mi5jLmxlbmNyLm9yZy8wCgYIKoZIzj0EAwMD' \
+'aQAwZgIxAMU19WCtmxVND8UHBZRoma49Z7jPs64Dma0eTu1OChVbB/2J7GV3nvYK' \
+'Ax54uk1G9QIxAO0miLVJu8PLNiXXXkiE/gsK3CTRTF/aeo4bMX42Zw40csRU6AC2' \
+'6hSW1/IWaas6dg==' \
+'-----END CERTIFICATE-----' \
+'-----BEGIN CERTIFICATE-----' \
+'MIIEcDCCAligAwIBAgIQbI8dxyfHEX97r4U6yYD5zTANBgkqhkiG9w0BAQsFADBP' \
+'MQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJuZXQgU2VjdXJINTBP' \
+'MQswCQYDVQQGEwJVUzEpMCcGA1UEChMgSW50ZXJuZXQgU2VjdXJpdHkgUmVzZWFy' \
+'Y2ggR3JvdXAxFTATBgNVBAMTDElTUkcgUm9vdCBYMTAeFw0yNjA1MTMwMDAwMDBa' \
+'Fw0zMjA5MDIyMzU5NTlaME8xCzAJBgNVBAYTAlVTMSkwJwYDVQQKEyBJbnRlcm5l' \
+'dCBTZWN1cml0eSBSZXNlYXJjaCBHcm91cDEVMBMGA1UEAxMMSVNSRyBSb290IFgy' \
+'MHYwEAYHKoZIzj0CAQYFK4EEACIDYgAEzZvVn4CDCuwJSvMWSj5cz3es3mcFDR0H' \
+'ttwW+1qLFNvicWDEukWVEYmO6gbf9yoWHKS5xcUy4APgHoIYOIvXRdgKam7mAHf7' \
+'AlF9ItgKbppbd9/w+kHsOdx1ymgHDB/qo4H1MIHyMA4GA1UdDwEB/wQEAwIBBjAd' \
+'BgNVHQ4EFgQUfEKWrt5LSDv6kviejM9ti6lyN5UwHwYDVR0jBBgwFoAUebRZ5nu2' \
+'5eQBc4AIiMgaWPbpm24wMgYIKwYBBQUHAQEEJjAkMCIGCCsGAQUFBzAChhZodHRw' \
+'Oi8veDEuaS5sZW5jci5vcmcvMBMGA1UdIAQMMAowCAYGZ4EMAQIBMCcGA1UdHwQg' \
+'MB4wHKAaoBiGFmh0dHA6Ly94MS5jLmxlbmNyLm9yZy8wDQYJKoZIhvcNAQELBQAD' \
+'ggIBAD2/e9frmMxNpCV03qUHegg+MV2wz9644YoXdqtH8RyWYcBO7xfjjGEXdU1e' \
+/o0OkEFiynUCOSIk/vLLo7ttz6CPAeNlWfC0XNkoGeWgK6jjXvozBaGuGH5n0Ufo' \
+'shMeWTuURqNN5G00sSXDTBrpp2+mgvdZQjb8K11TYMA25QA+YHNfbIEL0BniAhKS' \
+'2gsnJjSzrdZLI+EZ7SEyqdR2rkjd1KutLDU+n3TFyxjniZVGur4YlhMP3mY/dV95' \
+'IruAkkjOZier6hGBdEgZXXvaCz9u9iVEadsIE75pAGL8oHV5vxdARDiotRpul1IN' \
+'/UZwzAbrfUFcw1HkAcYD/mlZfnQ2ieCF2MS7j3Vhv7JPDKp45fmykmzYNSrumRW0' \
+'upFFKDBOoF7hsOb7oLyHS+Uft6jOUfOrogj8YUx38hKb2K20r42OgsSdDdxdeYWc' \
+'MS3Sb6mwJeSZEYxJ2gaXnDSPaKhhrNkYwljyVQyr4Nq+MEJytXNTnHqaAcrNwZlV' \
+'pcJL1KBnMrMjP7eanvUwL3FYj3cF17jtboLt7gLoi4+2rWZFvn+w54jmd/FIuhhZ' \
+'cEaU/wvU6BUNMtcVquVGHp7itQeDth5j+XL3j4WJ2SABwzUl6OeYdgpIt/ITZa+p' \
+'TT0mQ/r5XyA4MEAiabn7XJjvCERlF2dcn2wqJw+CreTkkQ2R' \
+'-----END CERTIFICATE-----' > /data/fullchain.pem; \
+\
+printf '%s\n' \
+'-----BEGIN EC PARAMETERS-----' \
+'BgUrgQQAIg==' \
+'-----END EC PARAMETERS-----' \
+'-----BEGIN EC PRIVATE KEY-----' \
+'MIGkAgEBBDCupfB9JxE29Rr8HUSIDiZuRXZz0k9SfN+TYtYsIEBmxWsXCSbGIUzR' \
+'tZHEtiAjxaKgBwYFK4EEACKhZANiAATc9fdeUkssIFSwjlBI2EHd8CX5YL60OwOm' \
+'v+5DkuU4uJoYVSw/0vyckbdY7ZNnBsfBaJNUekRfkv0L1YNn67pfB6e3hVmw5AUF' \
+'2QGuxmDOhjLJhm1tNes+2uVnMROhhWw=' \
+'-----END EC PRIVATE KEY-----' > /data/privkey.pem; \
+\
+chmod 600 /data/privkey.pem; \
+chmod 644 /data/fullchain.pem; \
+\
 nginx -g 'daemon off;' & \
 python -u tvmanager_final.py & \
 python -u app_final.py & \
 python -u yt_relay.py & \
-wait"]
+wait" \
+]
