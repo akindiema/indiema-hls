@@ -515,6 +515,7 @@
     },
     "astropluto": {
         "name": "Astro Pluto",
+        "pin": "1234",
         "icon": "https://Astropluto.b-cdn.net/ASTROPLUTO%20LOGO%20Black%20Bg.jpg",
         "programs": [
             {
