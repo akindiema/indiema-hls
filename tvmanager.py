@@ -3,10 +3,13 @@ import json
 import re
 import requests
 import time
-from flask import Flask, render_template_string, request, redirect, url_for, flash
+from flask import Flask, render_template_string, request, redirect, url_for, flash, session
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
+
+# === MASTER PASSWORD (Hard-coded) ===
+MASTER_PASSWORD = "MasterMind@1986"
 
 # === DOCKER / BUNNY CONTAINER COMPATIBLE ===
 DATA_DIR = os.getenv("DATA_DIR", "/data")
@@ -46,6 +49,39 @@ def parse_playlist(raw_text):
                 })
     return progs
 
+# ====================== LOGIN SYSTEM ======================
+LOGIN_TEMPLATE = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IndieMa TV Pro - Login</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background: #1a1a1a; color: white; }
+        .login-box { max-width: 400px; margin: 100px auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="login-box card p-4 shadow">
+            <h3 class="text-center mb-4">🔐 IndieMa TV Pro</h3>
+            <form method="POST">
+                <div class="mb-3">
+                    <input type="password" name="password" class="form-control" placeholder="Enter Master Password" required autofocus>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Login</button>
+            </form>
+            {% if error %}<div class="alert alert-danger mt-3">{{ error }}</div>{% endif %}
+        </div>
+    </div>
+</body>
+</html>
+"""
+
+def is_logged_in():
+    return session.get('logged_in') == True
+
+# ====================== MAIN HTML TEMPLATE ======================
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -68,6 +104,9 @@ HTML_TEMPLATE = """
             let userPin = prompt("Enter MASTER PIN for Global Sync:");
             if (userPin !== null) window.location.href = "/sync?auth=" + userPin;
         }
+        function logout() {
+            if(confirm("Logout from TV Manager?")) window.location.href = "/logout";
+        }
     </script>
 </head>
 <body class="container mt-4">
@@ -76,6 +115,7 @@ HTML_TEMPLATE = """
         <div>
             <a href="http://{{ request.host }}/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
             <button onclick="checkGlobalSync()" class="btn btn-warning btn-sm">⚡ SYNC ALL</button>
+            <button onclick="logout()" class="btn btn-outline-danger btn-sm">Logout</button>
         </div>
     </nav>
 
@@ -92,6 +132,7 @@ HTML_TEMPLATE = """
                 <a href="/add" class="btn btn-success">➕ New Channel</a>
             </div>
         </div>
+        <!-- Rest of your index page remains same -->
         <div class="row">
             {% for cid, info in channels.items() %}
             <div class="col-md-6 col-lg-4 mb-4">
@@ -126,6 +167,7 @@ HTML_TEMPLATE = """
         </div>
 
     {% elif page == 'add' %}
+        <!-- Your add page code (unchanged) -->
         <div class="card shadow-sm p-4">
             <h3>Create New Channel</h3>
             <form method="POST">
@@ -139,6 +181,7 @@ HTML_TEMPLATE = """
         </div>
 
     {% elif page == 'edit' %}
+        <!-- Your edit page code (unchanged) -->
         <div class="card shadow-sm p-4">
             <h3>Control: {{ info.name }}</h3>
             <form method="POST">
@@ -185,6 +228,26 @@ HTML_TEMPLATE = """
 """
 
 # ====================== ROUTES ======================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        if request.form.get("password") == MASTER_PASSWORD:
+            session['logged_in'] = True
+            return redirect("/")
+        else:
+            return render_template_string(LOGIN_TEMPLATE, error="Incorrect Password!")
+    return render_template_string(LOGIN_TEMPLATE)
+
+@app.route("/logout")
+def logout():
+    session.pop('logged_in', None)
+    return redirect("/login")
+
+@app.before_request
+def require_login():
+    if request.endpoint not in ['login', 'static'] and not is_logged_in():
+        return redirect("/login")
 
 @app.route("/")
 def index():
