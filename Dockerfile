@@ -1,35 +1,41 @@
 FROM python:3.11-slim
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y ffmpeg nginx curl procps && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+# Copy all repository contents into the container
 COPY . /app
 
+# Install Python requirements
 RUN pip install --no-cache-dir flask m3u8 requests waitress
 
+# Setup persistent storage volume configuration
 VOLUME /data
 ENV DATA_DIR=/data
 
-# Create directory and copy configuration and certificate files natively
-RUN mkdir -p /etc/nginx/ssl
+# Clean default Nginx files and prepare directories
+RUN mkdir -p /etc/nginx/ssl /data
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf /etc/nginx/nginx.conf
 
+# Copy customized web-server layout configurations
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY fullchain.pem /etc/nginx/ssl/fullchain.pem
 COPY privkey.pem /etc/nginx/ssl/privkey.pem
 
+# Apply restrictive security permissions for certificates
 RUN chmod 644 /etc/nginx/ssl/fullchain.pem && chmod 600 /etc/nginx/ssl/privkey.pem
 
-RUN mkdir -p /data
+# Open web-routing container ports
+EXPOSE 80 443 5001 5010
 
-EXPOSE 80 443
-
+# Boot all parallel streaming layers safely
 CMD ["sh", "-c", " \
 mkdir -p /data && \
-cp -f /app/channels.json /data/channels.json 2>/dev/null || true; \
-nginx -g 'daemon off;' & \
-python -u tvmanager_final.py & \
+if [ -f /app/channels.json ] && [ ! -f /data/channels.json ]; then cp /app/channels.json /data/channels.json; fi; \
+nginx & \
 python -u app_final.py & \
 python -u yt_relay.py & \
-wait" \
-]
+if [ -f /app/tvmanager_final.py ]; then python -u tvmanager_final.py; else python -u tvmanager.py; fi \
+"]
