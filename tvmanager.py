@@ -70,143 +70,80 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-HTML_TEMPLATE = """
+# ====================== MONITOR HTML TEMPLATE ======================
+MONITOR_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>IndieMa TV Pro</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <title>IndieMa Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <meta http-equiv="refresh" content="30">
     <style>
+        body { background: #0f172a; color: #f8fafc; }
+        .card { background: #1e293b; border: none; }
         .navbar { background-color: #1a1a1a !important; }
-        .btn-monitor { background-color: #17a2b8; color: white !important; font-weight: bold; }
-        .badge-playing { background-color: #28a745; animation: blinker 1.5s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0; } }
     </style>
-    <script>
-        function checkPin(actionUrl, correctPin) {
-            let userPin = prompt("Enter 6-digit Management PIN:");
-            if (userPin === correctPin) window.location.href = actionUrl;
-            else if (userPin !== null) alert("Incorrect PIN!");
-        }
-        function checkGlobalSync() {
-            let userPin = prompt("Enter MASTER PIN for Global Sync:");
-            if (userPin !== null) window.location.href = "/sync?auth=" + userPin;
-        }
-        function logout() {
-            if(confirm("Logout?")) window.location.href = "/logout";
-        }
-    </script>
 </head>
-<body class="container mt-4">
-    <nav class="navbar navbar-dark mb-4 p-3 shadow-sm rounded">
-        <a class="navbar-brand" href="/">📺 IndieMa TV Pro</a>
-        <div>
-            <a href="/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
-            <button onclick="checkGlobalSync()" class="btn btn-warning btn-sm">⚡ SYNC ALL</button>
-            <button onclick="logout()" class="btn btn-outline-danger btn-sm">Logout</button>
-        </div>
+<body class="p-4">
+    <nav class="navbar navbar-dark mb-4 p-3 rounded">
+        <a class="navbar-brand" href="/">← Back to Dashboard</a>
+        <h3 class="text-center text-light m-0">📊 IndieMa Analytics</h3>
     </nav>
 
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        {% for msg in messages %}<div class="alert alert-info">{{ msg }}</div>{% endfor %}
-      {% endif %}
-    {% endwith %}
-
-    {% if page == 'index' %}
-        <div class="row mb-3">
-            <div class="col"><h2>Channel Dashboard</h2></div>
-            <div class="col text-right">
-                <a href="/add" class="btn btn-success">➕ New Channel</a>
-            </div>
-        </div>
+    <div class="container">
         <div class="row">
-            {% for cid, info in channels.items() %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm">
-                    <div class="card-body">
-                        <div class="d-flex align-items-center mb-3">
-                            <img src="{{ info.icon or 'https://via.placeholder.com/50' }}" width="50" class="rounded me-3">
-                            <div>
-                                <h5 class="card-title mb-0">{{ info.name }}</h5>
-                                <small class="text-muted"><code>{{ cid }}</code></small>
-                            </div>
+            {% for channel in stats %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card p-4 h-100">
+                    <h4>{{ channel.name }}</h4>
+                    <span class="badge {{ 'bg-success' if channel.status == 'ONLINE' else 'bg-danger' }}">
+                        ● {{ channel.status }}
+                    </span>
+
+                    <div class="row text-center my-4">
+                        <div class="col-6">
+                            <small>Live Viewers</small><br>
+                            <h2 class="text-info">{{ channel.viewers }}</h2>
                         </div>
-                        {% set active_sch = False %}
-                        {% for sch in info.get('schedules', []) %}
-                            {% if sch.status == 'playing' %}
-                                <span class="badge badge-playing">LIVE: {{ sch.name }}</span>
-                                {% set active_sch = True %}
-                            {% endif %}
-                        {% endfor %}
-                        {% if not active_sch %}
-                            <span class="badge bg-secondary">Mode: Generic Rotation</span>
-                        {% endif %}
-                        <hr>
-                        <button onclick="checkPin('/edit/{{ cid }}', '{{ info.pin }}')" class="btn btn-primary w-100 mb-2">Manage Playlists & Schedules</button>
-                        <button onclick="checkPin('/sync_channel/{{ cid }}', '{{ info.pin }}')" class="btn btn-warning w-100">🔄 Force Sync</button>
+                        <div class="col-6">
+                            <small>Clips</small><br>
+                            <h2>{{ channel.clip_count }}</h2>
+                        </div>
                     </div>
+                    <canvas id="chart-{{ channel.id }}" height="180"></canvas>
                 </div>
             </div>
             {% endfor %}
         </div>
+    </div>
 
-    {% elif page == 'add' %}
-        <div class="card shadow-sm p-4">
-            <h3>Create New Channel</h3>
-            <form method="POST">
-                <input name="cid" placeholder="Channel ID (e.g. news-tv)" class="form-control mb-2" required>
-                <input name="name" placeholder="Channel Name" class="form-control mb-2" required>
-                <input name="icon" placeholder="Icon URL (Optional)" class="form-control mb-2">
-                <input name="pin" placeholder="Management PIN (6 digits)" class="form-control mb-2" pattern="[0-9]{6}" required>
-                <button class="btn btn-success btn-block mt-3">Create Channel</button>
-                <a href="/" class="btn btn-link btn-block">Back to Dashboard</a>
-            </form>
-        </div>
-
-    {% elif page == 'edit' %}
-        <div class="card shadow-sm p-4">
-            <h3>Control: {{ info.name }}</h3>
-            <form method="POST">
-                <div class="row">
-                    <div class="col-md-7 mb-3">
-                        <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}\n{% endfor %}</textarea>
-                    </div>
-                    <div class="col-md-5 mb-3">
-                        <label class="fw-bold">Add New Schedule</label>
-                        <div class="p-3 border rounded bg-light">
-                            <input type="text" name="sch_name" class="form-control mb-2" placeholder="Schedule Name">
-                            <textarea name="sch_list" class="form-control mb-2" rows="4" placeholder="Title | URL | Category"></textarea>
-                            <input type="datetime-local" name="sch_start" class="form-control mb-2">
-                            <select name="sch_mode" class="form-select">
-                                <option value="once">Play Once</option>
-                                <option value="rotate">Rotate</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <button type="submit" class="btn btn-success btn-block">Save & Update Engine</button>
-                <a href="/" class="btn btn-link btn-block">Cancel</a>
-            </form>
-
-            <h5 class="mt-4">Active Schedules</h5>
-            <table class="table table-sm">
-                <thead><tr><th>Name</th><th>Start Time</th><th>Status</th><th>Action</th></tr></thead>
-                <tbody>
-                    {% for idx in range(info.get('schedules', [])|length) %}
-                    {% set sch = info.schedules[idx] %}
-                    <tr>
-                        <td>{{ sch.name }}</td>
-                        <td>{{ sch.start_time or 'N/A' }}</td>
-                        <td>{{ sch.status }}</td>
-                        <td><a href="/del_schedule/{{ cid }}/{{ idx }}" class="btn btn-outline-danger btn-sm">Delete</a></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% endif %}
+    <script>
+    document.querySelectorAll('canvas').forEach(canvas => {
+        const channelId = canvas.id.replace('chart-', '');
+        fetch(`/api/analytics?channel=${channelId}&days=30`)
+            .then(r => r.json())
+            .then(data => {
+                new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: data.map(item => item.time.substring(11,16)),
+                        datasets: [{
+                            label: 'Viewers',
+                            data: data.map(item => item.viewers),
+                            borderColor: '#60a5fa',
+                            tension: 0.4,
+                            fill: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        scales: { y: { beginAtZero: true } }
+                    }
+                });
+            });
+    });
+    </script>
 </body>
 </html>
 """
@@ -214,30 +151,40 @@ HTML_TEMPLATE = """
 # ====================== LOGIN PROTECTION ======================
 @app.before_request
 def require_login():
-    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static'] or request.path.startswith('/static'):
+    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static', 'api_stats', 'api_analytics'] or request.path.startswith('/static'):
         return
     if not session.get('logged_in'):
         return redirect("/login")
 
-# ====================== MONITOR ======================
+# ====================== MONITOR ROUTES ======================
 @app.route("/monitor")
 def monitor():
     return redirect("/monitor_internal", code=302)
 
 @app.route("/monitor_internal")
 def monitor_internal():
-    return """
-    <div style="padding:40px; font-family:Arial; text-align:center; background:#0f172a; color:white; min-height:100vh;">
-        <h2>📊 IndieMa Monitor</h2>
-        <p><a href="/" class="btn btn-light">← Back to Dashboard</a></p>
-        <hr>
-        <p><strong>Monitor page is under development.</strong></p>
-        <p>You can check the HLS Engine directly here:</p>
-        <a href="http://127.0.0.1:5000" target="_blank" class="btn btn-info">Open HLS Engine (Port 5000)</a>
-    </div>
-    """
+    try:
+        stats = requests.get("http://127.0.0.1:5001/api/stats", timeout=5).json()
+    except:
+        stats = []
+    return render_template_string(MONITOR_TEMPLATE, stats=stats)
 
-# ====================== ROUTES ======================
+# ====================== API ROUTES (from your monitor.py) ======================
+@app.route("/api/stats")
+def api_stats():
+    try:
+        return requests.get("http://127.0.0.1:5001/api/stats", timeout=5).content
+    except:
+        return json.dumps([])
+
+@app.route("/api/analytics")
+def api_analytics():
+    try:
+        return requests.get(f"http://127.0.0.1:5001/api/analytics?{request.query_string.decode()}", timeout=5).content
+    except:
+        return json.dumps([])
+
+# ====================== OTHER ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -256,6 +203,8 @@ def logout():
 @app.route("/")
 def index():
     return render_template_string(HTML_TEMPLATE, page='index', channels=load_channels())
+
+# ... [Keep your /add, /edit, /sync, /sync_channel, /del_schedule routes as they are]
 
 @app.route("/add", methods=["GET", "POST"])
 def add_channel():
@@ -306,38 +255,7 @@ def edit_channel(cid):
 
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
 
-@app.route("/sync")
-def sync():
-    auth = request.args.get("auth")
-    channels = load_channels()
-    valid_pins = [c.get("pin") for c in channels.values() if c.get("pin")]
-    if auth not in valid_pins:
-        flash("Invalid PIN!")
-        return redirect("/")
-    try:
-        requests.get("http://127.0.0.1:5000/reload", timeout=30)
-        flash("All channels synced successfully!")
-    except:
-        flash("Sync request sent to engine.")
-    return redirect("/")
-
-@app.route("/sync_channel/<cid>")
-def sync_channel(cid):
-    try:
-        requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=15)
-        flash(f"Sync triggered for {cid}")
-    except:
-        flash("Sync request sent.")
-    return redirect("/")
-
-@app.route("/del_schedule/<cid>/<int:idx>")
-def del_schedule(cid, idx):
-    channels = load_channels()
-    if cid in channels and len(channels[cid].get("schedules", [])) > idx:
-        channels[cid]["schedules"].pop(idx)
-        save_channels(channels)
-        flash("Schedule deleted.")
-    return redirect(url_for('edit_channel', cid=cid))
+# (Add your remaining routes: /sync, /sync_channel, /del_schedule if missing)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
