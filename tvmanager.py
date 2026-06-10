@@ -22,18 +22,14 @@ def load_channels():
             content = f.read().strip()
             if not content: return {}
             return json.loads(content)
-    except Exception:
+    except:
         return {}
 
 def save_channels(data):
-    try:
-        os.makedirs(DATA_DIR, exist_ok=True)
-        temp_file = CHANNELS_FILE + ".tmp"
-        with open(temp_file, "w") as f:
-            json.dump(data, f, indent=4)
-        os.replace(temp_file, CHANNELS_FILE)
-    except Exception:
-        pass
+    temp_file = CHANNELS_FILE + ".tmp"
+    with open(temp_file, "w") as f:
+        json.dump(data, f, indent=4)
+    os.replace(temp_file, CHANNELS_FILE)
 
 def parse_playlist(raw_text):
     progs = []
@@ -175,8 +171,7 @@ HTML_TEMPLATE = """
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}
-{% endfor %}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}\n{% endfor %}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -219,17 +214,12 @@ HTML_TEMPLATE = """
 # ====================== LOGIN PROTECTION ======================
 @app.before_request
 def require_login():
-    allowed_endpoints = ['login', 'logout', 'monitor', 'monitor_internal', 'static', 'health']
-    if request.endpoint in allowed_endpoints or request.path.startswith('/static') or request.path == '/health':
+    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static'] or request.path.startswith('/static'):
         return
     if not session.get('logged_in'):
         return redirect("/login")
 
-# ====================== MONITOR / HEALTH ======================
-@app.route("/health")
-def health():
-    return {"status": "healthy"}, 200
-
+# ====================== MONITOR ======================
 @app.route("/monitor")
 def monitor():
     return redirect("/monitor_internal", code=302)
@@ -308,10 +298,10 @@ def edit_channel(cid):
 
         save_channels(channels)
         try:
-            requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=5)
+            requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=15)
             flash("Settings saved & Engine synced!")
-        except requests.exceptions.RequestException:
-            flash("Settings saved. Engine connection timed out.")
+        except:
+            flash("Settings saved. Engine restart may be needed.")
         return redirect(url_for('edit_channel', cid=cid))
 
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
@@ -325,19 +315,19 @@ def sync():
         flash("Invalid PIN!")
         return redirect("/")
     try:
-        requests.get("http://127.0.0.1:5000/reload", timeout=10)
+        requests.get("http://127.0.0.1:5000/reload", timeout=30)
         flash("All channels synced successfully!")
-    except requests.exceptions.RequestException:
-        flash("Sync timed out. Engine engine might be offline.")
+    except:
+        flash("Sync request sent to engine.")
     return redirect("/")
 
 @app.route("/sync_channel/<cid>")
 def sync_channel(cid):
     try:
-        requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=5)
+        requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=15)
         flash(f"Sync triggered for {cid}")
-    except requests.exceptions.RequestException:
-        flash("Sync failed. Check engine availability.")
+    except:
+        flash("Sync request sent.")
     return redirect("/")
 
 @app.route("/del_schedule/<cid>/<int:idx>")
@@ -349,7 +339,5 @@ def del_schedule(cid, idx):
         flash("Schedule deleted.")
     return redirect(url_for('edit_channel', cid=cid))
 
-# ====================== FORCE BIND TO 5001 ======================
 if __name__ == "__main__":
-    # This hard-forces the app execution context onto Port 5001
     app.run(host="0.0.0.0", port=5001)
