@@ -224,11 +224,8 @@ def require_login():
 # ====================== MONITOR ROUTE ======================
 @app.route("/monitor")
 def monitor():
-    # Redirect to your actual HLS Engine Monitor
-    # Change this URL if your real monitor is on a different domain/port
-    return redirect("http://127.0.0.1:5000/monitor", code=302)
-    # Alternative: If you have external monitor, use:
-    # return redirect("https://tv.infopluto.com/monitor", code=302)
+    # Redirect to your PHP monitor
+    return redirect("/monitor.php", code=302)
 
 # ====================== OTHER ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
@@ -301,8 +298,6 @@ def edit_channel(cid):
         return redirect(url_for('edit_channel', cid=cid))
 
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
-
-# ... (your other routes /sync, /sync_channel, /del_schedule remain the same)
 
 @app.route("/sync")
 def sync():
