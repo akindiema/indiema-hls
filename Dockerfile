@@ -30,12 +30,13 @@ RUN chmod 644 /etc/nginx/ssl/fullchain.pem && chmod 600 /etc/nginx/ssl/privkey.p
 # Open web-routing container ports
 EXPOSE 80 443 5001 5010
 
-# Boot all parallel streaming layers safely
+# Boot all layers in the background safely and use wait to keep the container open
 CMD ["sh", "-c", " \
 mkdir -p /data && \
 if [ -f /app/channels.json ] && [ ! -f /data/channels.json ]; then cp /app/channels.json /data/channels.json; fi; \
 nginx & \
 python -u app_final.py & \
 python -u yt_relay.py & \
-if [ -f /app/tvmanager_final.py ]; then python -u tvmanager_final.py; else python -u tvmanager.py; fi \
+if [ -f /app/tvmanager_final.py ]; then python -u tvmanager_final.py & else python -u tvmanager.py & fi; \
+wait \
 "]
