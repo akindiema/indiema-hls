@@ -70,7 +70,7 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-HTML_TEMPLATE = """ 
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -211,77 +211,10 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# ====================== FULL MONITOR TEMPLATE ======================
-MONITOR_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>IndieMa Analytics</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <meta http-equiv="refresh" content="30">
-    <style>
-        body { background: #0f172a; color: #f8fafc; }
-        .card { background: #1e293b; border: none; }
-    </style>
-</head>
-<body class="p-4">
-    <nav class="navbar navbar-dark mb-4 p-3 rounded">
-        <a class="navbar-brand" href="/">← Back to Dashboard</a>
-        <h3 class="text-center text-light m-0">📊 IndieMa Analytics</h3>
-    </nav>
-
-    <div class="container">
-        <div class="row">
-            {% for channel in stats %}
-            <div class="col-lg-6 col-xl-4 mb-4">
-                <div class="card p-4 h-100">
-                    <h4>{{ channel.name }}</h4>
-                    <span class="badge {{ 'bg-success' if channel.status == 'ONLINE' else 'bg-danger' }}">
-                        ● {{ channel.status }}
-                    </span>
-                    <div class="row text-center my-4">
-                        <div class="col-6">
-                            <small>Live Viewers</small><br>
-                            <h2 class="text-info">{{ channel.viewers }}</h2>
-                        </div>
-                        <div class="col-6">
-                            <small>Clips</small><br>
-                            <h2>{{ channel.clip_count }}</h2>
-                        </div>
-                    </div>
-                    <canvas id="chart-{{ channel.id }}" height="180"></canvas>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <script>
-    document.querySelectorAll('canvas').forEach(canvas => {
-        const channelId = canvas.id.replace('chart-', '');
-        fetch(`/api/analytics?channel=${channelId}&days=30`)
-            .then(r => r.json())
-            .then(data => {
-                new Chart(canvas, {
-                    type: 'line',
-                    data: {
-                        labels: data.map(item => item.time.substring(11,16)),
-                        datasets: [{ label: 'Viewers', data: data.map(item => item.viewers), borderColor: '#60a5fa', tension: 0.4 }]
-                    },
-                    options: { responsive: true, scales: { y: { beginAtZero: true } } }
-                });
-            });
-    });
-    </script>
-</body>
-</html>
-"""
-
 # ====================== LOGIN PROTECTION ======================
 @app.before_request
 def require_login():
-    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'api_stats', 'api_analytics', 'static'] or request.path.startswith('/static'):
+    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static'] or request.path.startswith('/static'):
         return
     if not session.get('logged_in'):
         return redirect("/login")
@@ -293,28 +226,16 @@ def monitor():
 
 @app.route("/monitor_internal")
 def monitor_internal():
-    try:
-        stats = requests.get("http://127.0.0.1:5001/api/stats", timeout=8).json()
-    except:
-        stats = []
-    return render_template_string(MONITOR_TEMPLATE, stats=stats)
-
-# ====================== API PROXIES ======================
-@app.route("/api/stats")
-def api_stats():
-    try:
-        resp = requests.get("http://127.0.0.1:5001/api/stats", timeout=5)
-        return resp.content
-    except:
-        return json.dumps([])
-
-@app.route("/api/analytics")
-def api_analytics():
-    try:
-        resp = requests.get(f"http://127.0.0.1:5001/api/analytics?{request.query_string.decode()}", timeout=5)
-        return resp.content
-    except:
-        return json.dumps([])
+    return """
+    <div style="padding:40px; font-family:Arial; text-align:center; background:#0f172a; color:white; min-height:100vh;">
+        <h2>📊 IndieMa Monitor</h2>
+        <p><a href="/" class="btn btn-light">← Back to Dashboard</a></p>
+        <hr>
+        <p><strong>Monitor page is under development.</strong></p>
+        <p>You can check the HLS Engine directly here:</p>
+        <a href="http://127.0.0.1:5000" target="_blank" class="btn btn-info">Open HLS Engine (Port 5000)</a>
+    </div>
+    """
 
 # ====================== ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
