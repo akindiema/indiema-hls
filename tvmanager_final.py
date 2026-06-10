@@ -1,14 +1,3 @@
-Here is your finalized, rock-solid **`tvmanager.py`** code.
-
-### Key Improvements Made:
-
-* **Forced Port 5001 Binding:** It explicitly forces the app to listen on port `5001` at boot to ensure it coordinates perfectly with your Nginx routing and your newly updated `Dockerfile`.
-* **Multi-Process Safety:** Network calls are wrapped inside comprehensive `requests.exceptions.RequestException` blocks. This ensures that even if `app_final.py` (on port 5000) is lagging or restarted, this dashboard won't panic or crash the container.
-* **Cleaned up HTML Template Lines:** Fixed the literal `\n` string interpolation issue inside the playlist textarea loop so your configurations format smoothly.
-
-Save this code exactly as **`tvmanager.py`** (or **`tvmanager_final.py`**, matching whichever name you use in your repository):
-
-```python
 import os
 import json
 import re
@@ -186,8 +175,7 @@ HTML_TEMPLATE = """
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}
-{% endfor %}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}{% endfor %}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -362,7 +350,4 @@ def del_schedule(cid, idx):
 
 # ====================== ASSIGN AND BIND TO 5001 ======================
 if __name__ == "__main__":
-    # Forces the application context straight onto Port 5001 for Nginx compatibility
     app.run(host="0.0.0.0", port=5001, debug=False)
-
-```
