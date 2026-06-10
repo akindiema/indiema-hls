@@ -103,7 +103,7 @@ HTML_TEMPLATE = """
     <nav class="navbar navbar-dark mb-4 p-3 shadow-sm rounded">
         <a class="navbar-brand" href="/">📺 IndieMa TV Pro</a>
         <div>
-            <a href="http://{{ request.host }}/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
+            <a href="/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
             <button onclick="checkGlobalSync()" class="btn btn-warning btn-sm">⚡ SYNC ALL</button>
             <button onclick="logout()" class="btn btn-outline-danger btn-sm">Logout</button>
         </div>
@@ -216,11 +216,21 @@ HTML_TEMPLATE = """
 # ====================== LOGIN PROTECTION ======================
 @app.before_request
 def require_login():
-    if request.endpoint in ['login', 'logout', 'static'] or request.path.startswith('/static'):
+    if request.endpoint in ['login', 'logout', 'monitor', 'static'] or request.path.startswith('/static'):
         return
     if not session.get('logged_in'):
         return redirect("/login")
 
+# ====================== MONITOR ROUTE ======================
+@app.route("/monitor")
+def monitor():
+    # Redirect to your actual HLS Engine Monitor
+    # Change this URL if your real monitor is on a different domain/port
+    return redirect("http://127.0.0.1:5000/monitor", code=302)
+    # Alternative: If you have external monitor, use:
+    # return redirect("https://tv.infopluto.com/monitor", code=302)
+
+# ====================== OTHER ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -236,7 +246,6 @@ def logout():
     session.clear()
     return redirect("/login")
 
-# ====================== ROUTES ======================
 @app.route("/")
 def index():
     return render_template_string(HTML_TEMPLATE, page='index', channels=load_channels())
@@ -291,8 +300,9 @@ def edit_channel(cid):
         
         return redirect(url_for('edit_channel', cid=cid))
 
-    # GET request
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
+
+# ... (your other routes /sync, /sync_channel, /del_schedule remain the same)
 
 @app.route("/sync")
 def sync():
