@@ -231,20 +231,13 @@ def health():
 
 @app.route("/monitor")
 def monitor():
+    # Redirect externally to the new high-performance monitoring node handled by Nginx
     return redirect("/monitor_internal", code=302)
 
 @app.route("/monitor_internal")
 def monitor_internal():
-    return """
-    <div style="padding:40px; font-family:Arial; text-align:center; background:#0f172a; color:white; min-height:100vh;">
-        <h2>📊 IndieMa Monitor</h2>
-        <p><a href="/" class="btn btn-light">← Back to Dashboard</a></p>
-        <hr>
-        <p><strong>Monitor page is under development.</strong></p>
-        <p>You can check the HLS Engine directly here:</p>
-        <a href="http://127.0.0.1:5000" target="_blank" class="btn btn-info">Open HLS Engine (Port 5000)</a>
-    </div>
-    """
+    # Automatically forward any internal checks to the dedicated server instance on Port 5020
+    return redirect("https://fast.infopluto.com/monitor", code=302)
 
 # ====================== ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
