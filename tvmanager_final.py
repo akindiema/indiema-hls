@@ -2,7 +2,6 @@ import os
 import json
 import re
 import requests
-import time
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session
 
 app = Flask(__name__)
@@ -47,17 +46,14 @@ def parse_playlist(raw_text):
                 })
     return progs
 
-# ====================== LOGIN ======================
+# ====================== LOGIN TEMPLATES ======================
 LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
     <title>IndieMa TV Pro - Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        body { background: #1a1a1a; color: white; }
-        .login-box { max-width: 420px; margin: 120px auto; }
-    </style>
+    <style>body { background: #1a1a1a; color: white; } .login-box { max-width: 420px; margin: 120px auto; }</style>
 </head>
 <body>
     <div class="container">
@@ -74,11 +70,8 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-def is_logged_in():
-    return session.get('logged_in') == True
-
-# ====================== MAIN TEMPLATE ======================
-HTML_TEMPLATE = """ 
+# ====================== MAIN HTML ======================
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -122,7 +115,6 @@ HTML_TEMPLATE = """
     {% endwith %}
 
     {% if page == 'index' %}
-        <!-- Your dashboard content here (same as before) -->
         <div class="row mb-3">
             <div class="col"><h2>Channel Dashboard</h2></div>
             <div class="col text-right">
@@ -161,7 +153,6 @@ HTML_TEMPLATE = """
         </div>
 
     {% elif page == 'add' %}
-        <!-- Add page content (unchanged) -->
         <div class="card shadow-sm p-4">
             <h3>Create New Channel</h3>
             <form method="POST">
@@ -175,7 +166,6 @@ HTML_TEMPLATE = """
         </div>
 
     {% elif page == 'edit' %}
-        <!-- Edit page content (unchanged) -->
         <div class="card shadow-sm p-4">
             <h3>Control: {{ info.name }}</h3>
             <form method="POST">
@@ -239,16 +229,15 @@ def logout():
 
 @app.before_request
 def require_login():
-    if request.path.startswith('/static') or request.endpoint in ['login', 'logout']:
-        return None
-    if not is_logged_in():
+    allowed = ['login', 'logout', 'static']
+    if request.endpoint in allowed or request.path.startswith('/static'):
+        return
+    if not session.get('logged_in'):
         return redirect("/login")
 
 @app.route("/")
 def index():
     return render_template_string(HTML_TEMPLATE, page='index', channels=load_channels())
-
-# ... (keep all your other routes: /add, /edit, /sync, /sync_channel, /del_schedule exactly as they were)
 
 @app.route("/add", methods=["GET", "POST"])
 def add_channel():
@@ -267,7 +256,75 @@ def add_channel():
         return redirect("/")
     return render_template_string(HTML_TEMPLATE, page='add')
 
-# (Paste your remaining routes here - /edit, /sync etc. unchanged)
+@app.route("/edit/<cid>", methods=["GET", "POST"])
+def edit_channel(cid):
+    channels = load_channels()
+    if cid not in channels:
+        return "Channel Not Found", 404
+
+    if request.method == "POST":
+        channels[cid]["programs"] = parse_playlist(request.form.get("generic_list", ""))
+        
+        sch_name = request.form.get("sch_name")
+        sch_list = request.form.get("sch_list")
+        if sch_name and sch_list:
+            new_sch = {
+                "name": sch_name,
+                "programs": parse_playlist(sch_list),
+                "start_time": request.form.get("sch_start"),
+                "mode": request.form.get("sch_mode", "once"),
+                "status": "scheduled"
+            }
+            if "schedules" not in channels[cid]:
+                channels[cid]["schedules"] = []
+            channels[cid]["schedules"].append(new_sch)
+
+        save_channels(channels)
+        
+        try:
+            requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=15)
+            flash("Settings saved & Engine synced!")
+        except:
+            flash("Settings saved. Engine restart may be needed.")
+        
+        return redirect(url_for('edit_channel', cid=cid))
+
+    return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
+
+@app.route("/sync")
+def sync():
+    auth = request.args.get("auth")
+    channels = load_channels()
+    valid_pins = [c.get("pin") for c in channels.values() if c.get("pin")]
+    
+    if auth not in valid_pins:
+        flash("Invalid PIN!")
+        return redirect("/")
+    
+    try:
+        requests.get("http://127.0.0.1:5000/reload", timeout=30)
+        flash("All channels synced successfully!")
+    except:
+        flash("Sync request sent to engine.")
+    return redirect("/")
+
+@app.route("/sync_channel/<cid>")
+def sync_channel(cid):
+    try:
+        requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=15)
+        flash(f"Sync triggered for {cid}")
+    except:
+        flash("Sync request sent.")
+    return redirect("/")
+
+@app.route("/del_schedule/<cid>/<int:idx>")
+def del_schedule(cid, idx):
+    channels = load_channels()
+    if cid in channels and len(channels[cid].get("schedules", [])) > idx:
+        channels[cid]["schedules"].pop(idx)
+        save_channels(channels)
+        flash("Schedule deleted.")
+    return redirect(url_for('edit_channel', cid=cid))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
