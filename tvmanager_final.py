@@ -15,38 +15,40 @@ DATA_DIR = os.getenv("DATA_DIR", "/data")
 CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
 
 def load_channels():
-    if not os.path.exists(CHANNELS_FILE): 
+    if not os.path.exists(CHANNELS_FILE):
         return {}
     try:
-        with open(CHANNELS_FILE, "r") as f: 
+        with open(CHANNELS_FILE, "r") as f:
             content = f.read().strip()
-            if not content: return {}
+            if not content:
+                return {}
             return json.loads(content)
     except Exception:
         return {}
 
 def save_channels(data):
     temp_file = CHANNELS_FILE + ".tmp"
-    with open(temp_file, "w") as f: 
+    with open(temp_file, "w") as f:
         json.dump(data, f, indent=4)
     os.replace(temp_file, CHANNELS_FILE)
 
 def parse_playlist(raw_text):
     progs = []
-    if not raw_text: return progs
+    if not raw_text:
+        return progs
     for line in raw_text.splitlines():
         line = line.strip()
         if '|' in line:
             parts = [i.strip() for i in line.split('|')]
             if len(parts) >= 2:
                 progs.append({
-                    "title": parts[0], 
-                    "url": parts[1], 
+                    "title": parts[0],
+                    "url": parts[1],
                     "category": parts[2] if len(parts) > 2 else "General"
                 })
     return progs
 
-# ====================== LOGIN TEMPLATES ======================
+# ====================== LOGIN ======================
 LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -70,7 +72,6 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-# ====================== MAIN HTML ======================
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -195,10 +196,11 @@ HTML_TEMPLATE = """
             <table class="table table-sm">
                 <thead><tr><th>Name</th><th>Start Time</th><th>Status</th><th>Action</th></tr></thead>
                 <tbody>
-                    {% for idx, sch in enumerate(info.get('schedules', [])) %}
+                    {% for idx in range(info.get('schedules', [])|length) %}
+                    {% set sch = info.schedules[idx] %}
                     <tr>
                         <td>{{ sch.name }}</td>
-                        <td>{{ sch.start_time }}</td>
+                        <td>{{ sch.start_time or 'N/A' }}</td>
                         <td>{{ sch.status }}</td>
                         <td><a href="/del_schedule/{{ cid }}/{{ idx }}" class="btn btn-outline-danger btn-sm">Delete</a></td>
                     </tr>
@@ -211,7 +213,14 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# ====================== ROUTES ======================
+# ====================== LOGIN PROTECTION ======================
+@app.before_request
+def require_login():
+    if request.endpoint in ['login', 'logout', 'static'] or request.path.startswith('/static'):
+        return
+    if not session.get('logged_in'):
+        return redirect("/login")
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -227,14 +236,7 @@ def logout():
     session.clear()
     return redirect("/login")
 
-@app.before_request
-def require_login():
-    allowed = ['login', 'logout', 'static']
-    if request.endpoint in allowed or request.path.startswith('/static'):
-        return
-    if not session.get('logged_in'):
-        return redirect("/login")
-
+# ====================== ROUTES ======================
 @app.route("/")
 def index():
     return render_template_string(HTML_TEMPLATE, page='index', channels=load_channels())
@@ -289,6 +291,7 @@ def edit_channel(cid):
         
         return redirect(url_for('edit_channel', cid=cid))
 
+    # GET request
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
 
 @app.route("/sync")
