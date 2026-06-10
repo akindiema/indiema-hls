@@ -20,10 +20,9 @@ def load_channels():
     try:
         with open(CHANNELS_FILE, "r") as f:
             content = f.read().strip()
-            if not content:
-                return {}
+            if not content: return {}
             return json.loads(content)
-    except Exception:
+    except:
         return {}
 
 def save_channels(data):
@@ -34,8 +33,7 @@ def save_channels(data):
 
 def parse_playlist(raw_text):
     progs = []
-    if not raw_text:
-        return progs
+    if not raw_text: return progs
     for line in raw_text.splitlines():
         line = line.strip()
         if '|' in line:
@@ -48,7 +46,7 @@ def parse_playlist(raw_text):
                 })
     return progs
 
-# ====================== LOGIN ======================
+# ====================== TEMPLATES ======================
 LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -216,18 +214,30 @@ HTML_TEMPLATE = """
 # ====================== LOGIN PROTECTION ======================
 @app.before_request
 def require_login():
-    if request.endpoint in ['login', 'logout', 'monitor', 'static'] or request.path.startswith('/static'):
+    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static'] or request.path.startswith('/static'):
         return
     if not session.get('logged_in'):
         return redirect("/login")
 
-# ====================== MONITOR ROUTE ======================
+# ====================== MONITOR ======================
 @app.route("/monitor")
 def monitor():
-    # Redirect to your PHP monitor
-    return redirect("/monitor.php", code=302)
+    return redirect("/monitor_internal", code=302)
 
-# ====================== OTHER ROUTES ======================
+@app.route("/monitor_internal")
+def monitor_internal():
+    return """
+    <div style="padding:40px; font-family:Arial; text-align:center; background:#0f172a; color:white; min-height:100vh;">
+        <h2>📊 IndieMa Monitor</h2>
+        <p><a href="/" class="btn btn-light">← Back to Dashboard</a></p>
+        <hr>
+        <p><strong>Monitor page is under development.</strong></p>
+        <p>You can check the HLS Engine directly here:</p>
+        <a href="http://127.0.0.1:5000" target="_blank" class="btn btn-info">Open HLS Engine (Port 5000)</a>
+    </div>
+    """
+
+# ====================== ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -272,7 +282,6 @@ def edit_channel(cid):
 
     if request.method == "POST":
         channels[cid]["programs"] = parse_playlist(request.form.get("generic_list", ""))
-        
         sch_name = request.form.get("sch_name")
         sch_list = request.form.get("sch_list")
         if sch_name and sch_list:
@@ -288,13 +297,11 @@ def edit_channel(cid):
             channels[cid]["schedules"].append(new_sch)
 
         save_channels(channels)
-        
         try:
             requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=15)
             flash("Settings saved & Engine synced!")
         except:
             flash("Settings saved. Engine restart may be needed.")
-        
         return redirect(url_for('edit_channel', cid=cid))
 
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
@@ -304,11 +311,9 @@ def sync():
     auth = request.args.get("auth")
     channels = load_channels()
     valid_pins = [c.get("pin") for c in channels.values() if c.get("pin")]
-    
     if auth not in valid_pins:
         flash("Invalid PIN!")
         return redirect("/")
-    
     try:
         requests.get("http://127.0.0.1:5000/reload", timeout=30)
         flash("All channels synced successfully!")
