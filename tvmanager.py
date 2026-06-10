@@ -219,7 +219,6 @@ HTML_TEMPLATE = """
 # ====================== LOGIN PROTECTION ======================
 @app.before_request
 def require_login():
-    # Explicitly allowed health check endpoints and static assets bypass protection
     allowed_endpoints = ['login', 'logout', 'monitor', 'monitor_internal', 'static', 'health']
     if request.endpoint in allowed_endpoints or request.path.startswith('/static') or request.path == '/health':
         return
@@ -229,7 +228,6 @@ def require_login():
 # ====================== MONITOR / HEALTH ======================
 @app.route("/health")
 def health():
-    # Dedicated Nginx/Bunny Container verification route
     return {"status": "healthy"}, 200
 
 @app.route("/monitor")
@@ -351,5 +349,7 @@ def del_schedule(cid, idx):
         flash("Schedule deleted.")
     return redirect(url_for('edit_channel', cid=cid))
 
+# ====================== FORCE BIND TO 5001 ======================
 if __name__ == "__main__":
+    # This hard-forces the app execution context onto Port 5001
     app.run(host="0.0.0.0", port=5001)
