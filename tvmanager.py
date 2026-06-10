@@ -70,7 +70,7 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-HTML_TEMPLATE = """
+HTML_TEMPLATE = """ 
 <!DOCTYPE html>
 <html>
 <head>
@@ -150,6 +150,7 @@ HTML_TEMPLATE = """
             </div>
             {% endfor %}
         </div>
+
     {% elif page == 'add' %}
         <div class="card shadow-sm p-4">
             <h3>Create New Channel</h3>
@@ -162,6 +163,7 @@ HTML_TEMPLATE = """
                 <a href="/" class="btn btn-link btn-block">Back to Dashboard</a>
             </form>
         </div>
+
     {% elif page == 'edit' %}
         <div class="card shadow-sm p-4">
             <h3>Control: {{ info.name }}</h3>
@@ -209,7 +211,7 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# ====================== MONITOR TEMPLATE ======================
+# ====================== FULL MONITOR TEMPLATE ======================
 MONITOR_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -314,7 +316,7 @@ def api_analytics():
     except:
         return json.dumps([])
 
-# ====================== MAIN ROUTES ======================
+# ====================== ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
