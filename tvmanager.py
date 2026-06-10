@@ -2,16 +2,15 @@ import os
 import json
 import re
 import requests
-import time
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
 
-# === MASTER PASSWORD (Hard-coded) ===
+# === MASTER PASSWORD ===
 MASTER_PASSWORD = "MasterMind@1986"
 
-# === DOCKER / BUNNY CONTAINER COMPATIBLE ===
+# === DOCKER COMPATIBLE ===
 DATA_DIR = os.getenv("DATA_DIR", "/data")
 CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
 
@@ -21,8 +20,7 @@ def load_channels():
     try:
         with open(CHANNELS_FILE, "r") as f: 
             content = f.read().strip()
-            if not content: 
-                return {}
+            if not content: return {}
             return json.loads(content)
     except Exception:
         return {}
@@ -35,8 +33,7 @@ def save_channels(data):
 
 def parse_playlist(raw_text):
     progs = []
-    if not raw_text: 
-        return progs
+    if not raw_text: return progs
     for line in raw_text.splitlines():
         line = line.strip()
         if '|' in line:
@@ -49,26 +46,21 @@ def parse_playlist(raw_text):
                 })
     return progs
 
-# ====================== LOGIN SYSTEM ======================
+# ====================== LOGIN TEMPLATES ======================
 LOGIN_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
     <title>IndieMa TV Pro - Login</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        body { background: #1a1a1a; color: white; }
-        .login-box { max-width: 400px; margin: 100px auto; }
-    </style>
+    <style>body { background: #1a1a1a; color: white; } .login-box { max-width: 420px; margin: 120px auto; }</style>
 </head>
 <body>
     <div class="container">
-        <div class="login-box card p-4 shadow">
+        <div class="login-box card p-5 shadow">
             <h3 class="text-center mb-4">🔐 IndieMa TV Pro</h3>
             <form method="POST">
-                <div class="mb-3">
-                    <input type="password" name="password" class="form-control" placeholder="Enter Master Password" required autofocus>
-                </div>
+                <input type="password" name="password" class="form-control mb-3" placeholder="Enter Master Password" required autofocus>
                 <button type="submit" class="btn btn-primary w-100">Login</button>
             </form>
             {% if error %}<div class="alert alert-danger mt-3">{{ error }}</div>{% endif %}
@@ -78,10 +70,7 @@ LOGIN_TEMPLATE = """
 </html>
 """
 
-def is_logged_in():
-    return session.get('logged_in') == True
-
-# ====================== MAIN HTML TEMPLATE ======================
+# ====================== MAIN HTML ======================
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
@@ -105,7 +94,7 @@ HTML_TEMPLATE = """
             if (userPin !== null) window.location.href = "/sync?auth=" + userPin;
         }
         function logout() {
-            if(confirm("Logout from TV Manager?")) window.location.href = "/logout";
+            if(confirm("Logout?")) window.location.href = "/logout";
         }
     </script>
 </head>
@@ -132,7 +121,6 @@ HTML_TEMPLATE = """
                 <a href="/add" class="btn btn-success">➕ New Channel</a>
             </div>
         </div>
-        <!-- Rest of your index page remains same -->
         <div class="row">
             {% for cid, info in channels.items() %}
             <div class="col-md-6 col-lg-4 mb-4">
@@ -145,7 +133,6 @@ HTML_TEMPLATE = """
                                 <small class="text-muted"><code>{{ cid }}</code></small>
                             </div>
                         </div>
-                        
                         {% set active_sch = False %}
                         {% for sch in info.get('schedules', []) %}
                             {% if sch.status == 'playing' %}
@@ -156,7 +143,6 @@ HTML_TEMPLATE = """
                         {% if not active_sch %}
                             <span class="badge bg-secondary">Mode: Generic Rotation</span>
                         {% endif %}
-
                         <hr>
                         <button onclick="checkPin('/edit/{{ cid }}', '{{ info.pin }}')" class="btn btn-primary w-100 mb-2">Manage Playlists & Schedules</button>
                         <button onclick="checkPin('/sync_channel/{{ cid }}', '{{ info.pin }}')" class="btn btn-warning w-100">🔄 Force Sync</button>
@@ -167,7 +153,6 @@ HTML_TEMPLATE = """
         </div>
 
     {% elif page == 'add' %}
-        <!-- Your add page code (unchanged) -->
         <div class="card shadow-sm p-4">
             <h3>Create New Channel</h3>
             <form method="POST">
@@ -181,7 +166,6 @@ HTML_TEMPLATE = """
         </div>
 
     {% elif page == 'edit' %}
-        <!-- Your edit page code (unchanged) -->
         <div class="card shadow-sm p-4">
             <h3>Control: {{ info.name }}</h3>
             <form method="POST">
@@ -228,7 +212,6 @@ HTML_TEMPLATE = """
 """
 
 # ====================== ROUTES ======================
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -241,12 +224,15 @@ def login():
 
 @app.route("/logout")
 def logout():
-    session.pop('logged_in', None)
+    session.clear()
     return redirect("/login")
 
 @app.before_request
 def require_login():
-    if request.endpoint not in ['login', 'static'] and not is_logged_in():
+    allowed = ['login', 'logout', 'static']
+    if request.endpoint in allowed or request.path.startswith('/static'):
+        return
+    if not session.get('logged_in'):
         return redirect("/login")
 
 @app.route("/")
@@ -309,7 +295,7 @@ def edit_channel(cid):
 def sync():
     auth = request.args.get("auth")
     channels = load_channels()
-    valid_pins = [c.get("pin") for c in channels.values()]
+    valid_pins = [c.get("pin") for c in channels.values() if c.get("pin")]
     
     if auth not in valid_pins:
         flash("Invalid PIN!")
