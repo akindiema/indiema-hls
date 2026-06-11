@@ -1,7 +1,7 @@
 import os
 import json
 from datetime import datetime
-from flask import Flask, render_template_string, jsonify
+from flask import Flask, render_template_string, jsonify, request
 
 app = Flask(__name__)
 
@@ -36,6 +36,19 @@ def get_default_analytics():
         "trend": "stable"
     }
 
+def clear_analytics_data():
+    """Reset analytics file to default state"""
+    try:
+        default_data = get_default_analytics()
+        with open(ANALYTICS_FILE, "w") as f:
+            json.dump(default_data, f, indent=2)
+        print("✅ Analytics data has been cleared")
+        return True
+    except Exception as e:
+        print(f"Clear analytics error: {e}")
+        return False
+
+
 MONITOR_HTML = """
 <!DOCTYPE html>
 <html lang="en">
@@ -59,6 +72,8 @@ MONITOR_HTML = """
         .trend-up { color: #4ade80; }
         .trend-down { color: #f87171; }
         .country-flag { font-size: 1.5rem; }
+        .btn-clear { background: #dc3545; border: none; }
+        .btn-clear:hover { background: #c82333; }
     </style>
 </head>
 <body>
@@ -68,8 +83,10 @@ MONITOR_HTML = """
                 <h1 class="fw-bold mb-0"><i class="bi bi-speedometer2 text-info me-2"></i>IndieMa TV Live Monitor</h1>
                 <small class="text-muted">Real-time Viewership • Updated every 5s</small>
             </div>
-            <div class="text-end">
-                <span class="badge bg-success fs-6 px-3 py-2" id="last-updated">Just now</span>
+            <div>
+                <button onclick="clearAnalytics()" class="btn btn-danger btn-clear px-4 py-2">
+                    <i class="bi bi-trash3"></i> Clear All Analytics Data
+                </button>
             </div>
         </div>
 
@@ -102,7 +119,7 @@ MONITOR_HTML = """
             </div>
         </div>
 
-        <!-- Swift TV App Traffic -->
+        <!-- Swift TV & CTV Traffic -->
         <div class="row mb-4">
             <div class="col-12">
                 <div class="card-custom p-4">
@@ -168,7 +185,7 @@ MONITOR_HTML = """
                     const last = new Date(data.last_updated || Date.now());
                     document.getElementById('last-updated').textContent = 'Updated ' + last.toLocaleTimeString();
 
-                    // Trend Indicator
+                    // Trend
                     const trendEl = document.getElementById('trend-indicator');
                     const trend = data.trend || 'stable';
                     trendEl.textContent = trend.toUpperCase();
@@ -199,12 +216,10 @@ MONITOR_HTML = """
                     // Channel Cards
                     const container = document.getElementById('channel-cards');
                     container.innerHTML = '';
-
                     Object.keys(data.channels || {}).forEach(cid => {
                         const ch = data.channels[cid];
                         const viewers = ch.live_viewers || 0;
                         const watchHours = ch.total_watch_hours || 0;
-
                         const html = `
                             <div class="col-lg-4 col-md-6 mb-4">
                                 <div class="card-custom p-4 channel-card">
@@ -253,15 +268,8 @@ MONITOR_HTML = """
                                     maintainAspectRatio: false,
                                     plugins: { legend: { display: false } },
                                     scales: {
-                                        y: { 
-                                            beginAtZero: true, 
-                                            grid: { color: '#334155' },
-                                            ticks: { color: '#94a3b8' }
-                                        },
-                                        x: { 
-                                            grid: { color: '#334155' },
-                                            ticks: { color: '#94a3b8' }
-                                        }
+                                        y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+                                        x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
                                     }
                                 }
                             });
@@ -275,6 +283,27 @@ MONITOR_HTML = """
                 .catch(err => console.error("Analytics fetch error:", err));
         }
 
+        function clearAnalytics() {
+            if (!confirm("⚠️ WARNING: This will delete ALL analytics data (viewers, watch time, timeline, countries, etc.).\n\nAre you sure you want to clear?")) {
+                return;
+            }
+
+            fetch('/clear-analytics', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        alert("✅ Analytics data cleared successfully!");
+                        updateDashboard();
+                    } else {
+                        alert("❌ Failed to clear data");
+                    }
+                })
+                .catch(err => {
+                    alert("❌ Error while clearing analytics");
+                    console.error(err);
+                });
+        }
+
         // Auto refresh
         setInterval(updateDashboard, 5000);
         window.onload = updateDashboard;
@@ -286,6 +315,11 @@ MONITOR_HTML = """
 @app.route("/api/analytics")
 def api_analytics():
     return jsonify(load_analytics())
+
+@app.route("/clear-analytics", methods=["POST"])
+def clear_analytics_route():
+    success = clear_analytics_data()
+    return jsonify({"success": success})
 
 @app.route("/monitor")
 @app.route("/")
