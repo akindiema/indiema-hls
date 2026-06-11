@@ -53,9 +53,9 @@ MONITOR_HTML = """
         .channel-card { transition: all 0.3s; }
         .channel-card:hover { transform: translateY(-4px); }
         
-        /* Force white text for all section headings and labels */
         h1, h4, h5, h6, .card-custom small, .text-muted { color: #ffffff !important; }
         .text-muted { opacity: 0.85; }
+        .country-flag { font-size: 1.4rem; }
     </style>
 </head>
 <body>
@@ -99,6 +99,18 @@ MONITOR_HTML = """
             </div>
         </div>
 
+        <!-- Countries -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card-custom p-4">
+                    <h5 class="mb-3"><i class="bi bi-globe text-primary me-2"></i>Top Countries</h5>
+                    <div class="row" id="countries-row">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Live Channels -->
         <h4 class="mb-3 text-white"><i class="bi bi-broadcast text-danger me-2"></i>Live Channels</h4>
         <div class="row" id="channel-cards">
@@ -133,6 +145,28 @@ MONITOR_HTML = """
                     const last = new Date(data.last_updated || Date.now());
                     document.getElementById('last-updated').textContent = 'Updated ' + last.toLocaleTimeString();
 
+                    // Countries
+                    const countriesRow = document.getElementById('countries-row');
+                    countriesRow.innerHTML = '';
+                    const countries = data.countries || [];
+                    if (countries.length === 0) {
+                        countriesRow.innerHTML = `<div class="col-12 text-muted">No country data yet</div>`;
+                    } else {
+                        countries.slice(0, 6).forEach(c => {
+                            const html = `
+                                <div class="col-md-2 col-6 mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <span class="country-flag me-2">🌍</span>
+                                        <div>
+                                            <div class="fw-bold">${c.country}</div>
+                                            <small class="text-muted">${c.viewers} viewers (${c.percentage}%)</small>
+                                        </div>
+                                    </div>
+                                </div>`;
+                            countriesRow.innerHTML += html;
+                        });
+                    }
+
                     // Channel Cards
                     const container = document.getElementById('channel-cards');
                     container.innerHTML = '';
@@ -140,6 +174,8 @@ MONITOR_HTML = """
                     Object.keys(data.channels || {}).forEach(cid => {
                         const ch = data.channels[cid];
                         const viewers = ch.live_viewers || 0;
+                        const watchHours = ch.total_watch_hours || 0;
+                        
                         const html = `
                             <div class="col-lg-4 col-md-6 mb-4">
                                 <div class="card-custom p-4 channel-card">
@@ -156,12 +192,17 @@ MONITOR_HTML = """
                                         <h1 class="display-4 fw-bold text-white mb-0">${viewers}</h1>
                                         <small class="text-muted">Concurrent Viewers</small>
                                     </div>
+                                    <div class="mt-3 pt-3 border-top border-secondary text-center">
+                                        <small class="text-success">
+                                            <i class="bi bi-clock"></i> ${watchHours.toFixed(1)} hours watched
+                                        </small>
+                                    </div>
                                 </div>
                             </div>`;
                         container.innerHTML += html;
                     });
 
-                    // Update Timeline Chart
+                    // Timeline Chart
                     if (data.timeline && data.timeline_data) {
                         if (!timelineChart) {
                             timelineChart = new Chart(document.getElementById('timelineChart'), {
@@ -215,7 +256,6 @@ def monitor_dashboard():
     return render_template_string(MONITOR_HTML, report=report)
 
 if __name__ == "__main__":
-    # Initialize analytics file if missing
     if not os.path.exists(ANALYTICS_FILE):
         with open(ANALYTICS_FILE, "w") as f:
             json.dump(get_default_analytics(), f, indent=2)
