@@ -52,6 +52,10 @@ MONITOR_HTML = """
         .metric-value { font-size: 2.8rem; font-weight: 700; }
         .channel-card { transition: all 0.3s; }
         .channel-card:hover { transform: translateY(-4px); }
+        
+        /* Force white text for all section headings and labels */
+        h1, h4, h5, h6, .card-custom small, .text-muted { color: #ffffff !important; }
+        .text-muted { opacity: 0.85; }
     </style>
 </head>
 <body>
