@@ -3,6 +3,9 @@ import json
 import re
 import requests
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session
+import threading
+import time
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
@@ -13,7 +16,8 @@ MASTER_PASSWORD = "MasterMind@1986"
 # === DOCKER COMPATIBLE ===
 DATA_DIR = os.getenv("DATA_DIR", "/data")
 CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
-
+# === ANALYTICS ===
+ANALYTICS_FILE = os.path.join(DATA_DIR, "monitor_analytics.json")
 def load_channels():
     if not os.path.exists(CHANNELS_FILE):
         return {}
@@ -35,6 +39,32 @@ def save_channels(data):
     except Exception:
         pass
 
+def init_analytics_file():
+    """Create default analytics file if it doesn't exist"""
+    if os.path.exists(ANALYTICS_FILE):
+        return
+    default_data = {
+        "summary": {
+            "total_watch_time_hours": 0,
+            "avg_watch_time_mins": 0,
+            "peak_concurrent": 0
+        },
+        "countries": [],
+        "timeline": [],
+        "timeline_data": [],
+        "channels": {},
+        "last_updated": datetime.now().isoformat(),
+        "active_sessions": 0
+    }
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        with open(ANALYTICS_FILE + ".tmp", "w") as f:
+            json.dump(default_data, f, indent=2)
+        os.replace(ANALYTICS_FILE + ".tmp", ANALYTICS_FILE)
+        print("✓ monitor_analytics.json initialized")
+    except:
+        pass
+        
 def parse_playlist(raw_text):
     progs = []
     if not raw_text: return progs
@@ -229,6 +259,18 @@ def require_login():
 def health():
     return {"status": "healthy"}, 200
 
+@app.route("/analytics")
+def get_analytics():
+    """Serve the current analytics JSON"""
+    if os.path.exists(ANALYTICS_FILE):
+        try:
+            with open(ANALYTICS_FILE, "r") as f:
+                data = json.load(f)
+            return data, 200
+        except:
+            pass
+    return {"status": "no_data_yet"}, 200
+
 @app.route("/monitor")
 def monitor():
     # Redirect externally to the new high-performance monitoring node handled by Nginx
@@ -343,4 +385,5 @@ def del_schedule(cid, idx):
 
 # ====================== ASSIGN AND BIND TO 5001 ======================
 if __name__ == "__main__":
+    init_analytics_file()          # ← Added
     app.run(host="0.0.0.0", port=5001, debug=False)
