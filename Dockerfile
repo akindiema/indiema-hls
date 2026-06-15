@@ -7,48 +7,45 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
-# Copy all repository contents
+# Copy all files
 COPY . /app
 
-# Install Python requirements (Added tailer for analytics)
+# Install Python packages
 RUN pip install --no-cache-dir flask m3u8 requests waitress tailer
 
-# Persistent data volume
+# Persistent data & logs
 VOLUME /data
 ENV DATA_DIR=/data
 
-# Create required directories
 RUN mkdir -p /data /var/log/nginx /etc/nginx/ssl \
     && chmod 755 /var/log/nginx
 
-# Remove default Nginx configs
+# Remove default nginx
 RUN rm -f /etc/nginx/sites-enabled/default /etc/nginx/conf.d/default.conf /etc/nginx/nginx.conf
 
-# Copy custom configs and certificates
+# Copy configs & certificates
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY fullchain.pem /etc/nginx/ssl/fullchain.pem
 COPY privkey.pem /etc/nginx/ssl/privkey.pem
 
-# Set proper permissions
 RUN chmod 644 /etc/nginx/ssl/fullchain.pem \
     && chmod 600 /etc/nginx/ssl/privkey.pem \
     && chmod 644 /etc/nginx/nginx.conf
 
-# Expose ports
 EXPOSE 80 443 5000 5001 5020 5021
 
-# Startup script
+# Improved startup script
 CMD ["sh", "-c", " \
     mkdir -p /data /var/log/nginx && \
-    # Copy channels.json if needed \
+    # Copy channels.json if missing
     if [ -f /app/channels.json ] && [ ! -f /data/channels.json ]; then \
         cp /app/channels.json /data/channels.json; \
     fi; \
-    # Start services \
-    nginx & \
+    echo '🚀 Starting IndieMa Services...'; \
+    nginx && \
     python -u app_final.py & \
     python -u yt_relay.py & \
-    python -u tvmonitor.py & \
+    python -u monitor.py & \
     python -u analytics_collector.py & \
     if [ -f /app/tvmanager_final.py ]; then \
         python -u tvmanager_final.py & \
