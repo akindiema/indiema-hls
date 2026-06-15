@@ -374,7 +374,10 @@ def background_prefetcher():
             
         except Exception as e:
             time.sleep(2)
-
+@app.route("/status")
+def status():
+    return {"active_channels": list(active_engines.keys())}
+    
 if __name__ == "__main__":
     load_and_prepare_all()
     threading.Thread(target=background_prefetcher, daemon=True).start()
