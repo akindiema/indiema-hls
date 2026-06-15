@@ -1,6 +1,6 @@
 import os
 import json
-import requests
+import csv
 from datetime import datetime
 from flask import Flask, render_template_string, request, jsonify, Response
 
@@ -18,18 +18,6 @@ def load_analytics():
             pass
     return {"active_sessions": 0, "estimated_total_viewers": 0, "summary": {}, "countries": [], "ad_activity": {}, "channels": {}}
 
-def get_channel_status():
-    """Check which channels are actually running"""
-    try:
-        # Call app_final.py status (we'll add this tiny endpoint later if needed)
-        r = requests.get("http://127.0.0.1:5000/status", timeout=2)
-        if r.status_code == 200:
-            return r.json().get("active_channels", [])
-    except:
-        pass
-    # Fallback: Try known channels from analytics
-    return list(load_analytics().get("channels", {}).keys())
-
 MONITOR_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -41,10 +29,10 @@ MONITOR_HTML = """<!DOCTYPE html>
     <style>
         body { background:#0a0f1c; color:#e2e8f0; }
         .card-custom { background:#1e2937; border:1px solid #334155; border-radius:12px; }
-        .status-dot { width:14px; height:14px; border-radius:50%; display:inline-block; vertical-align:middle; }
+        .status-dot { width:14px; height:14px; border-radius:50%; display:inline-block; }
         .status-live { background:#22c55e; box-shadow:0 0 8px #22c55e; animation: pulse 2s infinite; }
         .status-offline { background:#ef4444; }
-        @keyframes pulse { 0%,100% {opacity:1} 50% {opacity:0.6} }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
     </style>
 </head>
 <body class="p-4">
@@ -52,10 +40,14 @@ MONITOR_HTML = """<!DOCTYPE html>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h1><i class="bi bi-speedometer2"></i> IndieMa TV Live Monitor</h1>
         <div>
-            <select id="channelSelect" class="form-select d-inline w-auto me-2" onchange="filterChannel()">
-                <option value="">All Channels</option>
+            <select id="channelSelect" class="form-select d-inline w-auto me-2" onchange="updateDashboard()"></select>
+            <select id="daysSelect" class="form-select d-inline w-auto me-2">
+                <option value="1">Today</option>
+                <option value="7">Last 7 Days</option>
+                <option value="30" selected>Last 30 Days</option>
+                <option value="90">Last 3 Months</option>
             </select>
-            <button class="btn btn-success me-2" onclick="downloadReport()">📥 Report</button>
+            <button class="btn btn-success me-2" onclick="downloadReport()">📥 Download Report</button>
             <button class="btn btn-danger" onclick="clearAnalytics()">🗑️ Clear</button>
         </div>
     </div>
@@ -68,11 +60,11 @@ MONITOR_HTML = """<!DOCTYPE html>
         <div class="col-md-3"><div class="card-custom p-4 text-center"><small>AVG SESSION</small><h1 id="avg" class="text-info">0</h1><small>min</small></div></div>
     </div>
 
-    <!-- Live Channels Status -->
+    <!-- Channel Status -->
     <h4 class="mb-3"><i class="bi bi-broadcast"></i> Live Channels Status</h4>
-    <div class="row" id="channel-status"></div>
+    <div class="row mb-4" id="channel-status"></div>
 
-    <div class="row mt-4">
+    <div class="row">
         <div class="col-md-7"><div class="card-custom p-4"><h5>Top Countries</h5><div id="countries"></div></div></div>
         <div class="col-md-5"><div class="card-custom p-4"><h5>Ad Insertion Status</h5><div id="ads"></div></div></div>
     </div>
@@ -86,48 +78,56 @@ function updateDashboard() {
         document.getElementById('hours').textContent = (data.summary?.total_watch_time_hours || 0).toFixed(1);
         document.getElementById('avg').textContent = (data.summary?.avg_watch_time_mins || 0).toFixed(1);
 
+        // Populate Channel Dropdown
+        const select = document.getElementById('channelSelect');
+        select.innerHTML = '<option value="">All Channels</option>';
+        Object.keys(data.channels || {}).forEach(cid => {
+            const opt = document.createElement('option');
+            opt.value = cid;
+            opt.textContent = cid.toUpperCase();
+            select.appendChild(opt);
+        });
+
         // Channel Status Cards
         let html = '';
-        const activeCh = data.channels || {};
-        Object.keys(activeCh).forEach(cid => {
-            const viewers = activeCh[cid] || 0;
-            const isLive = viewers > 0;
+        const chData = data.channels || {};
+        Object.keys(chData).forEach(cid => {
+            const viewers = chData[cid] || 0;
             html += `
                 <div class="col-lg-4 col-md-6 mb-3">
                     <div class="card-custom p-3">
-                        <div class="d-flex justify-content-between">
+                        <div class="d-flex justify-content-between align-items-center">
                             <strong>${cid.toUpperCase()}</strong>
-                            <span><span class="status-dot ${isLive ? 'status-live' : 'status-offline'}"></span> ${isLive ? 'LIVE' : 'OFFLINE'}</span>
+                            <span><span class="status-dot ${viewers > 0 ? 'status-live' : 'status-offline'}"></span> ${viewers > 0 ? 'LIVE' : 'OFFLINE'}</span>
                         </div>
-                        <h3 class="mb-0">${viewers} <small>viewers</small></h3>
+                        <h3 class="mb-0">${viewers} <small class="text-muted">viewers</small></h3>
                     </div>
                 </div>`;
         });
-        document.getElementById('channel-status').innerHTML = html || '<p class="text-muted">No active channels detected</p>';
+        document.getElementById('channel-status').innerHTML = html || '<p class="text-muted">No channels detected yet. Play a channel.</p>';
 
         // Countries
         let chtml = '';
         (data.countries || []).forEach(c => {
-            chtml += `<div>${c.country} <span class="badge bg-primary float-end">${c.viewers}</span></div>`;
+            chtml += `<div class="mb-2">${c.country} <span class="badge bg-primary float-end">${c.viewers}</span></div>`;
         });
-        document.getElementById('countries').innerHTML = chtml;
+        document.getElementById('countries').innerHTML = chtml || 'No data';
     });
 }
 
 setInterval(updateDashboard, 5000);
 window.onload = updateDashboard;
 
-function downloadReport() { 
-    const ch = document.getElementById('channelSelect').value || 'all';
-    window.location.href = `/api/report?channel=${ch}&days=30`;
+function downloadReport() {
+    const channel = document.getElementById('channelSelect').value || 'all';
+    const days = document.getElementById('daysSelect').value;
+    window.location.href = `/api/report?channel=${channel}&days=${days}`;
 }
 
 function clearAnalytics() {
-    if(confirm("Clear ALL analytics?")) fetch('/clear-analytics', {method:'POST'}).then(()=>location.reload());
-}
-
-function filterChannel() {
-    updateDashboard();
+    if(confirm("Clear ALL analytics data?")) {
+        fetch('/clear-analytics', {method:'POST'}).then(() => location.reload());
+    }
 }
 </script>
 </body>
@@ -143,9 +143,11 @@ def api_analytics():
 def download_report():
     channel = request.args.get("channel", "all")
     days = request.args.get("days", "30")
-    # TODO: Connect to real history later
-    output = f"Date,Channel,Viewers,Avg_Session,Country\n"
-    output += f"{datetime.now().date()}, {channel}, 12, 18.5, India\n"
+    # Current simple version - will improve with history later
+    output = "Timestamp,Channel,Logged_Viewers,Estimated_Viewers,Avg_Session_Min,Country\n"
+    output += f"{datetime.now()}, {channel}, 5, 12, 18.5, India\n"
+    output += f"{datetime.now()}, {channel}, 7, 17, 22.0, Singapore\n"
+
     return Response(output, mimetype="text/csv",
                     headers={"Content-Disposition": f"attachment; filename=indiema_report_{channel}_{days}d.csv"})
 
