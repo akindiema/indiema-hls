@@ -34,7 +34,8 @@ def save_channels(data):
 
 def parse_playlist(raw_text):
     progs = []
-    if not raw_text: return progs
+    if not raw_text:
+        return progs
     for line in raw_text.splitlines():
         line = line.strip()
         if '|' in line:
@@ -53,8 +54,8 @@ def background_reload(cid=None):
         url = "http://127.0.0.1:5000/reload"
         if cid:
             url += f"?cid={cid}"
-        requests.get(url, timeout=40)
-        print(f"✅ Background reload done for {cid or 'ALL channels'}")
+        requests.get(url, timeout=60)
+        print(f"✅ Background reload completed for {cid or 'ALL'}")
     except:
         print(f"⚠️ Background reload timed out for {cid or 'ALL'}")
 
@@ -183,7 +184,7 @@ HTML_TEMPLATE = """
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}\n{% endfor %}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="15" style="font-family: monospace;">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}\n{% endfor %}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -293,7 +294,8 @@ def edit_channel(cid):
         return "Channel Not Found", 404
 
     if request.method == "POST":
-        channels[cid]["programs"] = parse_playlist(request.form.get("generic_list", ""))
+        raw_text = request.form.get("generic_list", "")
+        channels[cid]["programs"] = parse_playlist(raw_text)
         
         sch_name = request.form.get("sch_name")
         sch_list = request.form.get("sch_list")
@@ -311,10 +313,10 @@ def edit_channel(cid):
 
         save_channels(channels)
         
-        # Run reload in background so user doesn't wait
+        # Background reload
         threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
         
-        flash("✅ Settings saved successfully! Engine is updating in background...")
+        flash("✅ Playlist saved successfully! Engine is updating in background...")
         return redirect(url_for('edit_channel', cid=cid))
 
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
@@ -327,7 +329,6 @@ def sync():
     if auth not in valid_pins:
         flash("Invalid PIN!")
         return redirect("/")
-    
     threading.Thread(target=background_reload, args=(None,), daemon=True).start()
     flash("Sync triggered in background!")
     return redirect("/")
