@@ -4,8 +4,6 @@ import re
 import requests
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session
 import threading
-import time
-from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
@@ -16,8 +14,7 @@ MASTER_PASSWORD = "MasterMind@1986"
 # === DOCKER COMPATIBLE ===
 DATA_DIR = os.getenv("DATA_DIR", "/data")
 CHANNELS_FILE = os.path.join(DATA_DIR, "channels.json")
-# === ANALYTICS ===
-ANALYTICS_FILE = os.path.join(DATA_DIR, "monitor_analytics.json")
+
 def load_channels():
     if not os.path.exists(CHANNELS_FILE):
         return {}
@@ -26,45 +23,15 @@ def load_channels():
             content = f.read().strip()
             if not content: return {}
             return json.loads(content)
-    except Exception:
+    except:
         return {}
 
 def save_channels(data):
-    try:
-        os.makedirs(DATA_DIR, exist_ok=True)
-        temp_file = CHANNELS_FILE + ".tmp"
-        with open(temp_file, "w") as f:
-            json.dump(data, f, indent=4)
-        os.replace(temp_file, CHANNELS_FILE)
-    except Exception:
-        pass
+    temp_file = CHANNELS_FILE + ".tmp"
+    with open(temp_file, "w") as f:
+        json.dump(data, f, indent=4)
+    os.replace(temp_file, CHANNELS_FILE)
 
-def init_analytics_file():
-    """Create default analytics file if it doesn't exist"""
-    if os.path.exists(ANALYTICS_FILE):
-        return
-    default_data = {
-        "summary": {
-            "total_watch_time_hours": 0,
-            "avg_watch_time_mins": 0,
-            "peak_concurrent": 0
-        },
-        "countries": [],
-        "timeline": [],
-        "timeline_data": [],
-        "channels": {},
-        "last_updated": datetime.now().isoformat(),
-        "active_sessions": 0
-    }
-    try:
-        os.makedirs(DATA_DIR, exist_ok=True)
-        with open(ANALYTICS_FILE + ".tmp", "w") as f:
-            json.dump(default_data, f, indent=2)
-        os.replace(ANALYTICS_FILE + ".tmp", ANALYTICS_FILE)
-        print("✓ monitor_analytics.json initialized")
-    except:
-        pass
-        
 def parse_playlist(raw_text):
     progs = []
     if not raw_text: return progs
@@ -79,6 +46,17 @@ def parse_playlist(raw_text):
                     "category": parts[2] if len(parts) > 2 else "General"
                 })
     return progs
+
+# ====================== BACKGROUND RELOAD ======================
+def background_reload(cid=None):
+    try:
+        url = "http://127.0.0.1:5000/reload"
+        if cid:
+            url += f"?cid={cid}"
+        requests.get(url, timeout=40)
+        print(f"✅ Background reload done for {cid or 'ALL channels'}")
+    except:
+        print(f"⚠️ Background reload timed out for {cid or 'ALL'}")
 
 # ====================== TEMPLATES ======================
 LOGIN_TEMPLATE = """
@@ -205,7 +183,7 @@ HTML_TEMPLATE = """
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}{% endfor %}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}\n{% endfor %}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -248,38 +226,28 @@ HTML_TEMPLATE = """
 # ====================== LOGIN PROTECTION ======================
 @app.before_request
 def require_login():
-    allowed_endpoints = ['login', 'logout', 'monitor', 'monitor_internal', 'static', 'health']
-    if request.endpoint in allowed_endpoints or request.path.startswith('/static') or request.path == '/health':
+    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static'] or request.path.startswith('/static'):
         return
     if not session.get('logged_in'):
         return redirect("/login")
 
-# ====================== MONITOR / HEALTH ======================
-@app.route("/health")
-def health():
-    return {"status": "healthy"}, 200
-
-@app.route("/analytics")
-def get_analytics():
-    """Serve the current analytics JSON"""
-    if os.path.exists(ANALYTICS_FILE):
-        try:
-            with open(ANALYTICS_FILE, "r") as f:
-                data = json.load(f)
-            return data, 200
-        except:
-            pass
-    return {"status": "no_data_yet"}, 200
-
+# ====================== MONITOR ======================
 @app.route("/monitor")
 def monitor():
-    # Redirect externally to the new high-performance monitoring node handled by Nginx
     return redirect("/monitor_internal", code=302)
 
 @app.route("/monitor_internal")
 def monitor_internal():
-    # Automatically forward any internal checks to the dedicated server instance on Port 5020
-    return redirect("https://fast.infopluto.com/monitor", code=302)
+    return """
+    <div style="padding:40px; font-family:Arial; text-align:center; background:#0f172a; color:white; min-height:100vh;">
+        <h2>📊 IndieMa Monitor</h2>
+        <p><a href="/" class="btn btn-light">← Back to Dashboard</a></p>
+        <hr>
+        <p><strong>Monitor page is under development.</strong></p>
+        <p>You can check the HLS Engine directly here:</p>
+        <a href="http://127.0.0.1:5000" target="_blank" class="btn btn-info">Open HLS Engine (Port 5000)</a>
+    </div>
+    """
 
 # ====================== ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
@@ -326,6 +294,7 @@ def edit_channel(cid):
 
     if request.method == "POST":
         channels[cid]["programs"] = parse_playlist(request.form.get("generic_list", ""))
+        
         sch_name = request.form.get("sch_name")
         sch_list = request.form.get("sch_list")
         if sch_name and sch_list:
@@ -341,11 +310,11 @@ def edit_channel(cid):
             channels[cid]["schedules"].append(new_sch)
 
         save_channels(channels)
-        try:
-            requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=5)
-            flash("Settings saved & Engine synced!")
-        except requests.exceptions.RequestException:
-            flash("Settings saved. Engine connection timed out.")
+        
+        # Run reload in background so user doesn't wait
+        threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
+        
+        flash("✅ Settings saved successfully! Engine is updating in background...")
         return redirect(url_for('edit_channel', cid=cid))
 
     return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
@@ -358,20 +327,15 @@ def sync():
     if auth not in valid_pins:
         flash("Invalid PIN!")
         return redirect("/")
-    try:
-        requests.get("http://127.0.0.1:5000/reload", timeout=10)
-        flash("All channels synced successfully!")
-    except requests.exceptions.RequestException:
-        flash("Sync timed out. Engine engine might be offline.")
+    
+    threading.Thread(target=background_reload, args=(None,), daemon=True).start()
+    flash("Sync triggered in background!")
     return redirect("/")
 
 @app.route("/sync_channel/<cid>")
 def sync_channel(cid):
-    try:
-        requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=5)
-        flash(f"Sync triggered for {cid}")
-    except requests.exceptions.RequestException:
-        flash("Sync failed. Check engine availability.")
+    threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
+    flash(f"Sync triggered for {cid}")
     return redirect("/")
 
 @app.route("/del_schedule/<cid>/<int:idx>")
@@ -383,7 +347,5 @@ def del_schedule(cid, idx):
         flash("Schedule deleted.")
     return redirect(url_for('edit_channel', cid=cid))
 
-# ====================== ASSIGN AND BIND TO 5001 ======================
 if __name__ == "__main__":
-    init_analytics_file()          # ← Added
-    app.run(host="0.0.0.0", port=5001, debug=False)
+    app.run(host="0.0.0.0", port=5001)
