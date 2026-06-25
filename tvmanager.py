@@ -49,7 +49,7 @@ def parse_playlist(raw_text):
                 })
     return progs
 
-# ====================== BACKGROUND RELOAD ======================
+# ====================== BACKGROUND RELOAD (10-minute timeout) ======================
 def background_reload(cid=None):
     try:
         url = "http://127.0.0.1:5000/reload"
@@ -57,15 +57,19 @@ def background_reload(cid=None):
             url += f"?cid={cid}"
         for attempt in range(2):
             try:
-                resp = requests.get(url, timeout=120)
+                resp = requests.get(url, timeout=600)  # 10 minutes
                 if resp.status_code == 200:
                     print(f"✅ Background reload completed for {cid or 'ALL'}")
-                    return
-            except:
+                    return True
+            except Exception as e:
                 if attempt == 0:
-                    time.sleep(3)
-    except:
-        pass
+                    print(f"⚠️ Reload attempt {attempt+1} failed, retrying in 5s...")
+                    time.sleep(5)
+                else:
+                    print(f"⚠️ Background reload timed out for {cid or 'ALL'}: {e}")
+    except Exception as e:
+        print(f"⚠️ Reload error: {e}")
+    return False
 
 # ====================== TEMPLATES ======================
 LOGIN_TEMPLATE = """
@@ -116,6 +120,12 @@ HTML_TEMPLATE = """
         }
         function logout() {
             if(confirm("Logout?")) window.location.href = "/logout";
+        }
+        function showLoading() {
+            const loadingDiv = document.getElementById('loading-spinner');
+            if (loadingDiv) loadingDiv.style.display = 'block';
+            const saveBtn = document.getElementById('save-btn');
+            if (saveBtn) saveBtn.disabled = true;
         }
     </script>
 </head>
@@ -189,11 +199,11 @@ HTML_TEMPLATE = """
     {% elif page == 'edit' %}
         <div class="card shadow-sm p-4">
             <h3>Control: {{ info.name }}</h3>
-            <form method="POST">
+            <form method="POST" onsubmit="showLoading()">
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="18">{{ generic_raw | default('') }}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="20">{{ generic_raw | default('') }}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -208,8 +218,15 @@ HTML_TEMPLATE = """
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-success btn-block">Save & Update Engine</button>
+                <button type="submit" id="save-btn" class="btn btn-success btn-block">Save & Update Engine</button>
                 <a href="/" class="btn btn-link btn-block">Cancel</a>
+
+                <!-- LOADING SPINNER -->
+                <div id="loading-spinner" style="display:none; text-align:center; margin-top:20px; padding:20px; background:#f8f9fa; border-radius:8px;">
+                    <div class="spinner-border text-primary" role="status" style="width:3rem; height:3rem;"></div>
+                    <h5 class="mt-3">Saving large playlist...</h5>
+                    <p class="text-muted">Please wait. For very long lists this can take up to 10 minutes.<br>Do not close or refresh the browser.</p>
+                </div>
             </form>
 
             <h5 class="mt-4">Active Schedules</h5>
@@ -302,31 +319,24 @@ def edit_channel(cid):
 
     if request.method == "POST":
         raw_text = request.form.get("generic_list", "")
-        # Normalize line endings
+        # Normalize line endings (preserves exact pasted format)
         raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
 
-        # Immediate save of exact raw text
+        # === IMMEDIATE SAVE (guaranteed to update channels.json) ===
         channels[cid]["generic_raw"] = raw_text
+        channels[cid]["programs"] = parse_playlist(raw_text)
         save_channels(channels)
 
-        # Background parsing + reload
-        def background_process():
-            try:
-                ch = load_channels()
-                ch[cid]["programs"] = parse_playlist(raw_text)
-                save_channels(ch)
-                background_reload(cid)
-            except Exception as e:
-                print(f"Background error for {cid}: {e}")
+        # Background engine reload only
+        threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
 
-        threading.Thread(target=background_process, daemon=True).start()
-
-        flash("✅ Playlist saved successfully! Processing in background...")
+        flash("✅ Playlist saved successfully! Engine is updating in background.")
         return redirect(url_for('edit_channel', cid=cid))
 
-    # GET request - show exact raw text with line breaks
+    # GET - show exact raw text with original line breaks
     raw = channels[cid].get("generic_raw", "")
     if not raw:
+        # Backward compatibility
         raw = "\n".join(f"{p['title']} | {p['url']} | {p.get('category', 'General')}" 
                         for p in channels[cid].get("programs", []))
 
