@@ -4,6 +4,7 @@ import re
 import requests
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session
 import threading
+import time
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
@@ -54,10 +55,17 @@ def background_reload(cid=None):
         url = "http://127.0.0.1:5000/reload"
         if cid:
             url += f"?cid={cid}"
-        requests.get(url, timeout=60)
-        print(f"✅ Background reload completed for {cid or 'ALL'}")
+        for attempt in range(2):
+            try:
+                resp = requests.get(url, timeout=120)
+                if resp.status_code == 200:
+                    print(f"✅ Background reload completed for {cid or 'ALL'}")
+                    return
+            except:
+                if attempt == 0:
+                    time.sleep(3)
     except:
-        print(f"⚠️ Background reload timed out for {cid or 'ALL'}")
+        pass
 
 # ====================== TEMPLATES ======================
 LOGIN_TEMPLATE = """
@@ -94,6 +102,7 @@ HTML_TEMPLATE = """
         .btn-monitor { background-color: #17a2b8; color: white !important; font-weight: bold; }
         .badge-playing { background-color: #28a745; animation: blinker 1.5s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
+        textarea { white-space: pre-wrap; word-wrap: break-word; }
     </style>
     <script>
         function checkPin(actionUrl, correctPin) {
@@ -184,7 +193,7 @@ HTML_TEMPLATE = """
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="15" style="font-family: monospace;">{{ generic_raw | default('') }}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="18" style="font-family: monospace;">{{ generic_raw | default('') }}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -224,7 +233,7 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# ====================== LOGIN PROTECTION ======================
+# ====================== ROUTES ======================
 @app.before_request
 def require_login():
     if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static'] or request.path.startswith('/static'):
@@ -232,7 +241,6 @@ def require_login():
     if not session.get('logged_in'):
         return redirect("/login")
 
-# ====================== MONITOR ======================
 @app.route("/monitor")
 def monitor():
     return redirect("/monitor_internal", code=302)
@@ -250,7 +258,6 @@ def monitor_internal():
     </div>
     """
 
-# ====================== ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -296,33 +303,32 @@ def edit_channel(cid):
     if request.method == "POST":
         raw_text = request.form.get("generic_list", "")
 
-        # Immediate save of raw text
+        # Normalize line endings and store exact raw text
+        raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
+
         channels[cid]["generic_raw"] = raw_text
         save_channels(channels)
 
-        # Background processing (parsing + reload)
+        # Background processing
         def background_process():
             try:
                 ch = load_channels()
                 ch[cid]["programs"] = parse_playlist(raw_text)
                 save_channels(ch)
-                # Trigger engine reload
-                threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
-                print(f"✅ Background processing completed for {cid}")
+                background_reload(cid)
             except Exception as e:
-                print(f"⚠️ Background processing error: {e}")
+                print(f"Background error: {e}")
 
         threading.Thread(target=background_process, daemon=True).start()
 
-        flash("✅ Playlist saved successfully! Processing in background (no timeout)...")
+        flash("✅ Playlist saved successfully! Processing in background...")
         return redirect(url_for('edit_channel', cid=cid))
 
-    # GET - show exact raw text
+    # GET - Load raw text with preserved line breaks
     raw = channels[cid].get("generic_raw", "")
     if not raw:
-        # Backward compatibility for old channels
         raw = "\n".join(f"{p['title']} | {p['url']} | {p.get('category', 'General')}" 
-                       for p in channels[cid].get("programs", []))
+                        for p in channels[cid].get("programs", []))
 
     return render_template_string(HTML_TEMPLATE, 
                                   page='edit', 
@@ -339,7 +345,7 @@ def sync():
         flash("Invalid PIN!")
         return redirect("/")
     threading.Thread(target=background_reload, args=(None,), daemon=True).start()
-    flash("Sync triggered in background!")
+    flash("Global sync triggered in background!")
     return redirect("/")
 
 @app.route("/sync_channel/<cid>")
