@@ -102,7 +102,7 @@ HTML_TEMPLATE = """
         .btn-monitor { background-color: #17a2b8; color: white !important; font-weight: bold; }
         .badge-playing { background-color: #28a745; animation: blinker 1.5s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
-        textarea { white-space: pre-wrap; word-wrap: break-word; }
+        textarea { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
     </style>
     <script>
         function checkPin(actionUrl, correctPin) {
@@ -193,7 +193,7 @@ HTML_TEMPLATE = """
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="18" style="font-family: monospace;">{{ generic_raw | default('') }}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="18">{{ generic_raw | default('') }}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -302,14 +302,14 @@ def edit_channel(cid):
 
     if request.method == "POST":
         raw_text = request.form.get("generic_list", "")
-
-        # Normalize line endings and store exact raw text
+        # Normalize line endings
         raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
 
+        # Immediate save of exact raw text
         channels[cid]["generic_raw"] = raw_text
         save_channels(channels)
 
-        # Background processing
+        # Background parsing + reload
         def background_process():
             try:
                 ch = load_channels()
@@ -317,14 +317,14 @@ def edit_channel(cid):
                 save_channels(ch)
                 background_reload(cid)
             except Exception as e:
-                print(f"Background error: {e}")
+                print(f"Background error for {cid}: {e}")
 
         threading.Thread(target=background_process, daemon=True).start()
 
         flash("✅ Playlist saved successfully! Processing in background...")
         return redirect(url_for('edit_channel', cid=cid))
 
-    # GET - Load raw text with preserved line breaks
+    # GET request - show exact raw text with line breaks
     raw = channels[cid].get("generic_raw", "")
     if not raw:
         raw = "\n".join(f"{p['title']} | {p['url']} | {p.get('category', 'General')}" 
