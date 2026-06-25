@@ -4,7 +4,6 @@ import re
 import requests
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session
 import threading
-import time
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
@@ -49,17 +48,16 @@ def parse_playlist(raw_text):
                 })
     return progs
 
-# ====================== FIRE-AND-FORGET RELOAD (No Timeout) ======================
+# ====================== FIRE-AND-FORGET RELOAD ======================
 def fire_reload(cid=None):
     try:
         url = "http://127.0.0.1:5000/reload"
         if cid:
             url += f"?cid={cid}"
-        # Fire and forget - very short timeout, no waiting
         requests.get(url, timeout=10)
         print(f"✅ Reload request sent for {cid or 'ALL'}")
     except:
-        print(f"⚠️ Reload request sent (engine may take time for large list)")
+        print(f"⚠️ Reload request sent (engine may process large list)")
 
 # ====================== TEMPLATES ======================
 LOGIN_TEMPLATE = """
@@ -122,6 +120,7 @@ HTML_TEMPLATE = """
         <a class="navbar-brand" href="/">📺 IndieMa TV Pro</a>
         <div>
             <a href="/monitor" target="_blank" class="btn btn-monitor btn-sm mr-2">📊 MONITOR STATUS</a>
+            <a href="/view_json" class="btn btn-info btn-sm mr-2">📄 View Raw channels.json</a>
             <button onclick="checkGlobalSync()" class="btn btn-warning btn-sm">⚡ SYNC ALL</button>
             <button onclick="logout()" class="btn btn-outline-danger btn-sm">Logout</button>
         </div>
@@ -212,7 +211,7 @@ HTML_TEMPLATE = """
                 <div id="loading-spinner" style="display:none; text-align:center; margin-top:20px; padding:20px; background:#f8f9fa; border-radius:8px;">
                     <div class="spinner-border text-primary" role="status" style="width:3rem; height:3rem;"></div>
                     <h5 class="mt-3">Saving playlist...</h5>
-                    <p class="text-muted">Large lists may take time to process in the engine.<br>Do not close this tab.</p>
+                    <p class="text-muted">Large lists may take time in the engine.<br>Do not close this tab.</p>
                 </div>
             </form>
 
@@ -240,7 +239,7 @@ HTML_TEMPLATE = """
 # ====================== ROUTES ======================
 @app.before_request
 def require_login():
-    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static'] or request.path.startswith('/static'):
+    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static', 'view_json'] or request.path.startswith('/static'):
         return
     if not session.get('logged_in'):
         return redirect("/login")
@@ -261,6 +260,15 @@ def monitor_internal():
         <a href="http://127.0.0.1:5000" target="_blank" class="btn btn-info">Open HLS Engine (Port 5000)</a>
     </div>
     """
+
+@app.route("/view_json")
+def view_json():
+    try:
+        with open(CHANNELS_FILE, "r", encoding="utf-8") as f:
+            content = f.read()
+        return f"<pre style='background:#1a1a1a; color:#0f0; padding:20px; overflow:auto; max-height:90vh;'>{content}</pre>", 200
+    except Exception as e:
+        return f"<h3>Error reading channels.json</h3><p>{str(e)}</p>", 500
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -308,7 +316,7 @@ def edit_channel(cid):
         raw_text = request.form.get("generic_list", "")
         raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
 
-        # === INSTANT SAVE ===
+        # Instant Save
         channels[cid]["generic_raw"] = raw_text
         channels[cid]["programs"] = parse_playlist(raw_text)
         save_channels(channels)
@@ -316,7 +324,7 @@ def edit_channel(cid):
         # Fire reload without waiting
         threading.Thread(target=fire_reload, args=(cid,), daemon=True).start()
 
-        flash("✅ Playlist saved successfully! Engine is updating (large lists may take some time).")
+        flash("✅ Playlist saved successfully! Engine is updating in background.")
         return redirect(url_for('edit_channel', cid=cid))
 
     # GET
