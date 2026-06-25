@@ -184,7 +184,7 @@ HTML_TEMPLATE = """
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="15" style="font-family: monospace;">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}\n{% endfor %}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="15" style="font-family: monospace;">{{ generic_raw | default('') }}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -295,31 +295,40 @@ def edit_channel(cid):
 
     if request.method == "POST":
         raw_text = request.form.get("generic_list", "")
-        channels[cid]["programs"] = parse_playlist(raw_text)
-        
-        sch_name = request.form.get("sch_name")
-        sch_list = request.form.get("sch_list")
-        if sch_name and sch_list:
-            new_sch = {
-                "name": sch_name,
-                "programs": parse_playlist(sch_list),
-                "start_time": request.form.get("sch_start"),
-                "mode": request.form.get("sch_mode", "once"),
-                "status": "scheduled"
-            }
-            if "schedules" not in channels[cid]:
-                channels[cid]["schedules"] = []
-            channels[cid]["schedules"].append(new_sch)
 
+        # Immediate save of raw text
+        channels[cid]["generic_raw"] = raw_text
         save_channels(channels)
-        
-        # Background reload
-        threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
-        
-        flash("✅ Playlist saved successfully! Engine is updating in background...")
+
+        # Background processing (parsing + reload)
+        def background_process():
+            try:
+                ch = load_channels()
+                ch[cid]["programs"] = parse_playlist(raw_text)
+                save_channels(ch)
+                # Trigger engine reload
+                threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
+                print(f"✅ Background processing completed for {cid}")
+            except Exception as e:
+                print(f"⚠️ Background processing error: {e}")
+
+        threading.Thread(target=background_process, daemon=True).start()
+
+        flash("✅ Playlist saved successfully! Processing in background (no timeout)...")
         return redirect(url_for('edit_channel', cid=cid))
 
-    return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
+    # GET - show exact raw text
+    raw = channels[cid].get("generic_raw", "")
+    if not raw:
+        # Backward compatibility for old channels
+        raw = "\n".join(f"{p['title']} | {p['url']} | {p.get('category', 'General')}" 
+                       for p in channels[cid].get("programs", []))
+
+    return render_template_string(HTML_TEMPLATE, 
+                                  page='edit', 
+                                  cid=cid, 
+                                  info=channels[cid],
+                                  generic_raw=raw)
 
 @app.route("/sync")
 def sync():
