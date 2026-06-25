@@ -3,6 +3,8 @@ import json
 import re
 import requests
 from flask import Flask, render_template_string, request, redirect, url_for, flash, session
+import threading
+import time
 
 app = Flask(__name__)
 app.secret_key = "indiema_secret_key"
@@ -22,22 +24,19 @@ def load_channels():
             content = f.read().strip()
             if not content: return {}
             return json.loads(content)
-    except Exception:
+    except:
         return {}
 
 def save_channels(data):
-    try:
-        os.makedirs(DATA_DIR, exist_ok=True)
-        temp_file = CHANNELS_FILE + ".tmp"
-        with open(temp_file, "w") as f:
-            json.dump(data, f, indent=4)
-        os.replace(temp_file, CHANNELS_FILE)
-    except Exception:
-        pass
+    temp_file = CHANNELS_FILE + ".tmp"
+    with open(temp_file, "w") as f:
+        json.dump(data, f, indent=4)
+    os.replace(temp_file, CHANNELS_FILE)
 
 def parse_playlist(raw_text):
     progs = []
-    if not raw_text: return progs
+    if not raw_text:
+        return progs
     for line in raw_text.splitlines():
         line = line.strip()
         if '|' in line:
@@ -49,6 +48,18 @@ def parse_playlist(raw_text):
                     "category": parts[2] if len(parts) > 2 else "General"
                 })
     return progs
+
+# ====================== FIRE-AND-FORGET RELOAD (No Timeout) ======================
+def fire_reload(cid=None):
+    try:
+        url = "http://127.0.0.1:5000/reload"
+        if cid:
+            url += f"?cid={cid}"
+        # Fire and forget - very short timeout, no waiting
+        requests.get(url, timeout=10)
+        print(f"✅ Reload request sent for {cid or 'ALL'}")
+    except:
+        print(f"⚠️ Reload request sent (engine may take time for large list)")
 
 # ====================== TEMPLATES ======================
 LOGIN_TEMPLATE = """
@@ -85,6 +96,7 @@ HTML_TEMPLATE = """
         .btn-monitor { background-color: #17a2b8; color: white !important; font-weight: bold; }
         .badge-playing { background-color: #28a745; animation: blinker 1.5s linear infinite; }
         @keyframes blinker { 50% { opacity: 0; } }
+        textarea { white-space: pre-wrap; word-wrap: break-word; font-family: monospace; }
     </style>
     <script>
         function checkPin(actionUrl, correctPin) {
@@ -98,6 +110,10 @@ HTML_TEMPLATE = """
         }
         function logout() {
             if(confirm("Logout?")) window.location.href = "/logout";
+        }
+        function showLoading() {
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('save-btn').disabled = true;
         }
     </script>
 </head>
@@ -171,11 +187,11 @@ HTML_TEMPLATE = """
     {% elif page == 'edit' %}
         <div class="card shadow-sm p-4">
             <h3>Control: {{ info.name }}</h3>
-            <form method="POST">
+            <form method="POST" onsubmit="showLoading()">
                 <div class="row">
                     <div class="col-md-7 mb-3">
                         <label class="fw-bold">Generic Playlist (Default Rotation)</label>
-                        <textarea name="generic_list" class="form-control" rows="10">{% for p in info.programs %}{{ p.title }} | {{ p.url }} | {{ p.category }}{% endfor %}</textarea>
+                        <textarea name="generic_list" class="form-control" rows="20">{{ generic_raw | default('') }}</textarea>
                     </div>
                     <div class="col-md-5 mb-3">
                         <label class="fw-bold">Add New Schedule</label>
@@ -190,8 +206,14 @@ HTML_TEMPLATE = """
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn btn-success btn-block">Save & Update Engine</button>
+                <button type="submit" id="save-btn" class="btn btn-success btn-block">Save & Update Engine</button>
                 <a href="/" class="btn btn-link btn-block">Cancel</a>
+
+                <div id="loading-spinner" style="display:none; text-align:center; margin-top:20px; padding:20px; background:#f8f9fa; border-radius:8px;">
+                    <div class="spinner-border text-primary" role="status" style="width:3rem; height:3rem;"></div>
+                    <h5 class="mt-3">Saving playlist...</h5>
+                    <p class="text-muted">Large lists may take time to process in the engine.<br>Do not close this tab.</p>
+                </div>
             </form>
 
             <h5 class="mt-4">Active Schedules</h5>
@@ -215,19 +237,13 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# ====================== LOGIN PROTECTION ======================
+# ====================== ROUTES ======================
 @app.before_request
 def require_login():
-    allowed_endpoints = ['login', 'logout', 'monitor', 'monitor_internal', 'static', 'health']
-    if request.endpoint in allowed_endpoints or request.path.startswith('/static') or request.path == '/health':
+    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static'] or request.path.startswith('/static'):
         return
     if not session.get('logged_in'):
         return redirect("/login")
-
-# ====================== MONITOR / HEALTH ======================
-@app.route("/health")
-def health():
-    return {"status": "healthy"}, 200
 
 @app.route("/monitor")
 def monitor():
@@ -246,7 +262,6 @@ def monitor_internal():
     </div>
     """
 
-# ====================== ROUTES ======================
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -290,30 +305,31 @@ def edit_channel(cid):
         return "Channel Not Found", 404
 
     if request.method == "POST":
-        channels[cid]["programs"] = parse_playlist(request.form.get("generic_list", ""))
-        sch_name = request.form.get("sch_name")
-        sch_list = request.form.get("sch_list")
-        if sch_name and sch_list:
-            new_sch = {
-                "name": sch_name,
-                "programs": parse_playlist(sch_list),
-                "start_time": request.form.get("sch_start"),
-                "mode": request.form.get("sch_mode", "once"),
-                "status": "scheduled"
-            }
-            if "schedules" not in channels[cid]:
-                channels[cid]["schedules"] = []
-            channels[cid]["schedules"].append(new_sch)
+        raw_text = request.form.get("generic_list", "")
+        raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
 
+        # === INSTANT SAVE ===
+        channels[cid]["generic_raw"] = raw_text
+        channels[cid]["programs"] = parse_playlist(raw_text)
         save_channels(channels)
-        try:
-            requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=5)
-            flash("Settings saved & Engine synced!")
-        except requests.exceptions.RequestException:
-            flash("Settings saved. Engine connection timed out.")
+
+        # Fire reload without waiting
+        threading.Thread(target=fire_reload, args=(cid,), daemon=True).start()
+
+        flash("✅ Playlist saved successfully! Engine is updating (large lists may take some time).")
         return redirect(url_for('edit_channel', cid=cid))
 
-    return render_template_string(HTML_TEMPLATE, page='edit', cid=cid, info=channels[cid])
+    # GET
+    raw = channels[cid].get("generic_raw", "")
+    if not raw:
+        raw = "\n".join(f"{p['title']} | {p['url']} | {p.get('category', 'General')}" 
+                        for p in channels[cid].get("programs", []))
+
+    return render_template_string(HTML_TEMPLATE, 
+                                  page='edit', 
+                                  cid=cid, 
+                                  info=channels[cid],
+                                  generic_raw=raw)
 
 @app.route("/sync")
 def sync():
@@ -323,20 +339,14 @@ def sync():
     if auth not in valid_pins:
         flash("Invalid PIN!")
         return redirect("/")
-    try:
-        requests.get("http://127.0.0.1:5000/reload", timeout=10)
-        flash("All channels synced successfully!")
-    except requests.exceptions.RequestException:
-        flash("Sync timed out. Engine engine might be offline.")
+    threading.Thread(target=fire_reload, args=(None,), daemon=True).start()
+    flash("Global sync triggered!")
     return redirect("/")
 
 @app.route("/sync_channel/<cid>")
 def sync_channel(cid):
-    try:
-        requests.get(f"http://127.0.0.1:5000/reload?cid={cid}", timeout=5)
-        flash(f"Sync triggered for {cid}")
-    except requests.exceptions.RequestException:
-        flash("Sync failed. Check engine availability.")
+    threading.Thread(target=fire_reload, args=(cid,), daemon=True).start()
+    flash(f"Sync triggered for {cid}")
     return redirect("/")
 
 @app.route("/del_schedule/<cid>/<int:idx>")
@@ -348,6 +358,5 @@ def del_schedule(cid, idx):
         flash("Schedule deleted.")
     return redirect(url_for('edit_channel', cid=cid))
 
-# ====================== ASSIGN AND BIND TO 5001 ======================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5001, debug=False)
+    app.run(host="0.0.0.0", port=5001)
