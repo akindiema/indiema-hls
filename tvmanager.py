@@ -49,27 +49,17 @@ def parse_playlist(raw_text):
                 })
     return progs
 
-# ====================== BACKGROUND RELOAD (10-minute timeout) ======================
-def background_reload(cid=None):
+# ====================== FIRE-AND-FORGET RELOAD (No Timeout) ======================
+def fire_reload(cid=None):
     try:
         url = "http://127.0.0.1:5000/reload"
         if cid:
             url += f"?cid={cid}"
-        for attempt in range(2):
-            try:
-                resp = requests.get(url, timeout=600)  # 10 minutes
-                if resp.status_code == 200:
-                    print(f"✅ Background reload completed for {cid or 'ALL'}")
-                    return True
-            except Exception as e:
-                if attempt == 0:
-                    print(f"⚠️ Reload attempt {attempt+1} failed, retrying in 5s...")
-                    time.sleep(5)
-                else:
-                    print(f"⚠️ Background reload timed out for {cid or 'ALL'}: {e}")
-    except Exception as e:
-        print(f"⚠️ Reload error: {e}")
-    return False
+        # Fire and forget - very short timeout, no waiting
+        requests.get(url, timeout=10)
+        print(f"✅ Reload request sent for {cid or 'ALL'}")
+    except:
+        print(f"⚠️ Reload request sent (engine may take time for large list)")
 
 # ====================== TEMPLATES ======================
 LOGIN_TEMPLATE = """
@@ -122,10 +112,8 @@ HTML_TEMPLATE = """
             if(confirm("Logout?")) window.location.href = "/logout";
         }
         function showLoading() {
-            const loadingDiv = document.getElementById('loading-spinner');
-            if (loadingDiv) loadingDiv.style.display = 'block';
-            const saveBtn = document.getElementById('save-btn');
-            if (saveBtn) saveBtn.disabled = true;
+            document.getElementById('loading-spinner').style.display = 'block';
+            document.getElementById('save-btn').disabled = true;
         }
     </script>
 </head>
@@ -221,11 +209,10 @@ HTML_TEMPLATE = """
                 <button type="submit" id="save-btn" class="btn btn-success btn-block">Save & Update Engine</button>
                 <a href="/" class="btn btn-link btn-block">Cancel</a>
 
-                <!-- LOADING SPINNER -->
                 <div id="loading-spinner" style="display:none; text-align:center; margin-top:20px; padding:20px; background:#f8f9fa; border-radius:8px;">
                     <div class="spinner-border text-primary" role="status" style="width:3rem; height:3rem;"></div>
-                    <h5 class="mt-3">Saving large playlist...</h5>
-                    <p class="text-muted">Please wait. For very long lists this can take up to 10 minutes.<br>Do not close or refresh the browser.</p>
+                    <h5 class="mt-3">Saving playlist...</h5>
+                    <p class="text-muted">Large lists may take time to process in the engine.<br>Do not close this tab.</p>
                 </div>
             </form>
 
@@ -319,24 +306,22 @@ def edit_channel(cid):
 
     if request.method == "POST":
         raw_text = request.form.get("generic_list", "")
-        # Normalize line endings (preserves exact pasted format)
         raw_text = raw_text.replace('\r\n', '\n').replace('\r', '\n')
 
-        # === IMMEDIATE SAVE (guaranteed to update channels.json) ===
+        # === INSTANT SAVE ===
         channels[cid]["generic_raw"] = raw_text
         channels[cid]["programs"] = parse_playlist(raw_text)
         save_channels(channels)
 
-        # Background engine reload only
-        threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
+        # Fire reload without waiting
+        threading.Thread(target=fire_reload, args=(cid,), daemon=True).start()
 
-        flash("✅ Playlist saved successfully! Engine is updating in background.")
+        flash("✅ Playlist saved successfully! Engine is updating (large lists may take some time).")
         return redirect(url_for('edit_channel', cid=cid))
 
-    # GET - show exact raw text with original line breaks
+    # GET
     raw = channels[cid].get("generic_raw", "")
     if not raw:
-        # Backward compatibility
         raw = "\n".join(f"{p['title']} | {p['url']} | {p.get('category', 'General')}" 
                         for p in channels[cid].get("programs", []))
 
@@ -354,13 +339,13 @@ def sync():
     if auth not in valid_pins:
         flash("Invalid PIN!")
         return redirect("/")
-    threading.Thread(target=background_reload, args=(None,), daemon=True).start()
-    flash("Global sync triggered in background!")
+    threading.Thread(target=fire_reload, args=(None,), daemon=True).start()
+    flash("Global sync triggered!")
     return redirect("/")
 
 @app.route("/sync_channel/<cid>")
 def sync_channel(cid):
-    threading.Thread(target=background_reload, args=(cid,), daemon=True).start()
+    threading.Thread(target=fire_reload, args=(cid,), daemon=True).start()
     flash(f"Sync triggered for {cid}")
     return redirect("/")
 
