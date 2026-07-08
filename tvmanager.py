@@ -2,7 +2,7 @@ import os
 import json
 import re
 import requests
-from flask import Flask, render_template_string, request, redirect, url_for, flash, session
+from flask import Flask, render_template_string, request, redirect, url_for, flash, session, Response
 import threading
 
 app = Flask(__name__)
@@ -239,7 +239,7 @@ HTML_TEMPLATE = """
 # ====================== ROUTES ======================
 @app.before_request
 def require_login():
-    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static', 'view_json'] or request.path.startswith('/static'):
+    if request.endpoint in ['login', 'logout', 'monitor', 'monitor_internal', 'static', 'view_json'] or request.path.startswith('/static') or request.path == '/epg.xml':
         return
     if not session.get('logged_in'):
         return redirect("/login")
@@ -365,6 +365,20 @@ def del_schedule(cid, idx):
         save_channels(channels)
         flash("Schedule deleted.")
     return redirect(url_for('edit_channel', cid=cid))
+
+@app.route("/epg.xml")
+def serve_public_epg():
+    try:
+        r = requests.get("http://127.0.0.1:5000/epg.xml", timeout=10)
+        if r.status_code == 200:
+            return Response(
+                r.content,
+                content_type=r.headers.get('Content-Type', 'application/xml'),
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
+        return "EPG temporarily unavailable", 502
+    except Exception as e:
+        return f"EPG error: {str(e)}", 503
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5001)
